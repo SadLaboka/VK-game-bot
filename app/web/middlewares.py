@@ -37,11 +37,15 @@ async def error_handling_middleware(request: "Request", handler):
         response = await handler(request)
         return response
     except HTTPUnprocessableEntity as e:
+        try:
+            data = json.loads(e.text)
+        except Exception:
+            data = e.text
         return error_json_response(
             http_status=400,
             status=HTTP_ERROR_CODES[400],
             message=e.reason,
-            data=json.loads(e.text),
+            data=data,
         )
     except HTTPUnauthorized as e:
         return error_json_response(
@@ -59,8 +63,7 @@ async def error_handling_middleware(request: "Request", handler):
         return error_json_response(
             http_status=404,
             status=HTTP_ERROR_CODES[404],
-            message=e.reason,
-            data=json.loads(e.text),
+            message=e.reason
         )
     except HTTPNotImplemented as e:
         return error_json_response(

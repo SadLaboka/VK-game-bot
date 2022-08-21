@@ -1,7 +1,17 @@
+import typing
+
+from hashlib import sha256
 from typing import Any, Optional
 
 from aiohttp.web import json_response as aiohttp_json_response
+from aiohttp.web_exceptions import HTTPForbidden
 from aiohttp.web_response import Response
+
+from app.admin.models import Admin
+from app.store.admin.accessor import NotRegistered
+
+if typing.TYPE_CHECKING:
+    from app.web.app import Application
 
 
 def json_response(data: Any = None, status: str = "ok") -> Response:
@@ -21,4 +31,26 @@ def error_json_response(
     message: Optional[str] = None,
     data: Optional[dict] = None,
 ):
-    raise NotImplementedError
+    if data is None:
+        data = {}
+    return aiohttp_json_response(
+        status=http_status,
+        data={
+            'status': status,
+            'message': str(message),
+            'data': data,
+        })
+
+
+async def authenticate(email: str, password: str, app: "Application") -> Admin:
+    try:
+        admin = await app.store.admins.get_by_email(email)
+    except NotRegistered:
+        raise HTTPForbidden
+
+    decrypted_password = app.cryptographer.decrypt(admin.password)
+
+    if decrypted_password == password.encode():
+        return admin
+    else:
+        raise HTTPForbidden

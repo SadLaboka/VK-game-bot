@@ -2,6 +2,7 @@ import typing
 from dataclasses import dataclass
 
 import yaml
+from cryptography.fernet import Fernet
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application
@@ -9,7 +10,7 @@ if typing.TYPE_CHECKING:
 
 @dataclass
 class SessionConfig:
-    pass
+    key: bytes
 
 
 @dataclass
@@ -40,4 +41,6 @@ def setup_config(app: "Application", config_path: str):
             email=raw_config["admin"]["email"],
             password=raw_config["admin"]["password"],
         ),
+        session=SessionConfig(key=raw_config["session"]["key"])
     )
+    app.cryptographer = Fernet(key=Fernet.generate_key())

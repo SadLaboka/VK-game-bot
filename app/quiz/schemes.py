@@ -1,5 +1,7 @@
 from marshmallow import Schema, fields
 
+from app.web.schemes import OkResponseSchema
+
 
 class ThemeSchema(Schema):
     id = fields.Int(required=False)
@@ -18,8 +20,8 @@ class ThemeListSchema(Schema):
     pass
 
 
-class ThemeIdSchema(Schema):
-    pass
+class ThemeIdSchema(OkResponseSchema):
+    data = fields.Nested(ThemeSchema)
 
 
 class ListQuestionSchema(Schema):

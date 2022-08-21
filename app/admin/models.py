@@ -7,4 +7,4 @@ from typing import Optional
 class Admin:
     id: int
     email: str
-    password: Optional[str] = None
+    password: Optional[sha256] = None

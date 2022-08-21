@@ -1,18 +1,23 @@
+from aiohttp_apispec import request_schema, response_schema, docs
+
 from app.quiz.schemes import (
-    ThemeSchema,
+    ThemeSchema, ThemeIdSchema,
 )
 from app.web.app import View
+from app.web.mixins import AuthRequiredMixin
 from app.web.utils import json_response
 
 
-# TODO: добавить проверку авторизации для этого View
-class ThemeAddView(View):
-    # TODO: добавить валидацию с помощью aiohttp-apispec и marshmallow-схем
+class ThemeAddView(View, AuthRequiredMixin):
+    @docs(tags=['quiz'],
+          summary='Add theme',
+          description='Add new theme to the database')
+    @request_schema(ThemeSchema)
+    @response_schema(ThemeIdSchema, 200)
     async def post(self):
-        title = (await self.request.json())[
-            "title"
-        ]  # TODO: заменить на self.data["title"] после внедрения валидации
-        # TODO: проверять, что не существует темы с таким же именем, отдавать 409 если существует
+        await self.check_auth()
+
+        title = self.data['title']
         theme = await self.store.quizzes.create_theme(title=title)
         return json_response(data=ThemeSchema().dump(theme))
 

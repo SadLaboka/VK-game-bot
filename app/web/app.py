@@ -5,6 +5,10 @@ from aiohttp.web import (
     View as AiohttpView,
     Request as AiohttpRequest,
 )
+from aiohttp_apispec import setup_aiohttp_apispec
+from aiohttp_session import setup as setup_aiohttp_session
+from aiohttp_session.cookie_storage import EncryptedCookieStorage
+from cryptography.fernet import Fernet
 
 from app.admin.models import Admin
 from app.store import setup_store, Store
@@ -19,6 +23,7 @@ class Application(AiohttpApplication):
     config: Optional[Config] = None
     store: Optional[Store] = None
     database: Optional[Database] = None
+    cryptographer: Optional[Fernet] = None
 
 
 class Request(AiohttpRequest):
@@ -50,6 +55,8 @@ def setup_app(config_path: str) -> Application:
     setup_logging(app)
     setup_config(app, config_path)
     setup_routes(app)
+    setup_aiohttp_apispec(app, title='API server', url='/docs/json', swagger_path='/docs')
     setup_middlewares(app)
+    setup_aiohttp_session(app, EncryptedCookieStorage(app.config.session.key))
     setup_store(app)
     return app

@@ -46,11 +46,11 @@ async def authenticate(email: str, password: str, app: "Application") -> Admin:
     try:
         admin = await app.store.admins.get_by_email(email)
     except NotRegistered:
-        raise HTTPForbidden
+        raise HTTPForbidden(text='Admin with this email is not registered')
 
     decrypted_password = app.cryptographer.decrypt(admin.password)
 
     if decrypted_password == password.encode():
         return admin
     else:
-        raise HTTPForbidden
+        raise HTTPForbidden(text='Wrong password')

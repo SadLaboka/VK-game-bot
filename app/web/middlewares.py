@@ -10,7 +10,6 @@ from aiohttp.web_exceptions import (
     HTTPConflict,
     HTTPInternalServerError,
 
-
 )
 from aiohttp.web_middlewares import middleware
 from aiohttp_apispec import validation_middleware
@@ -48,44 +47,75 @@ async def error_handling_middleware(request: "Request", handler):
             data=data,
         )
     except HTTPUnauthorized as e:
+        try:
+            data = json.loads(e.text)
+        except Exception:
+            data = e.text
         return error_json_response(
             http_status=401,
             status=HTTP_ERROR_CODES[401],
             message=e.reason
         )
     except HTTPForbidden as e:
+        try:
+            data = json.loads(e.text)
+        except Exception:
+            data = e.text
         return error_json_response(
             http_status=403,
             status=HTTP_ERROR_CODES[403],
-            message=e.reason
+            message=e.reason,
+            data=data,
         )
     except HTTPNotFound as e:
+        try:
+            data = json.loads(e.text)
+        except Exception:
+            data = e.text
         return error_json_response(
             http_status=404,
             status=HTTP_ERROR_CODES[404],
-            message=e.reason
+            message=e.reason,
+            data=data,
         )
     except HTTPNotImplemented as e:
+        try:
+            data = json.loads(e.text)
+        except Exception:
+            data = e.text
         return error_json_response(
             http_status=405,
             status=HTTP_ERROR_CODES[405],
-            message=e.reason
+            message=e.reason,
+            data=data,
         )
     except HTTPConflict as e:
+        try:
+            data = json.loads(e.text)
+        except Exception:
+            data = e.text
         return error_json_response(
             http_status=409,
             status=HTTP_ERROR_CODES[409],
-            message=e.reason
+            message=e.reason,
+            data=data,
         )
     except HTTPInternalServerError as e:
+        try:
+            data = json.loads(e.text)
+        except Exception:
+            data = e.text
         return error_json_response(
             http_status=500,
             status=HTTP_ERROR_CODES[500],
             message=e.reason,
-            data=json.loads(e.text),
+            data=data
         )
     except Exception as e:
-        return error_json_response(http_status=500, status='internal server error', message=str(e))
+        return error_json_response(
+            http_status=500,
+            status='internal server error',
+            message=str(e))
 
 
 def setup_middlewares(app: "Application"):

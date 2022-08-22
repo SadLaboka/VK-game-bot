@@ -1,3 +1,4 @@
+from aiohttp.web_exceptions import HTTPNotImplemented
 from aiohttp_apispec import request_schema, response_schema, docs, querystring_schema
 
 from app.quiz.schemes import (
@@ -22,6 +23,9 @@ class ThemeAddView(View, AuthRequiredMixin):
         theme = await self.store.quizzes.create_theme(title=title)
         return json_response(data=ThemeSchema().dump(theme))
 
+    async def get(self):
+        raise HTTPNotImplemented(text='Get method does not implemented')
+
 
 @docs(tags=['quiz'],
       summary='Show themes',
@@ -34,6 +38,9 @@ class ThemeListView(View, AuthRequiredMixin):
         themes = await self.store.quizzes.list_themes()
         return json_response(data={
             'themes': [ThemeSchema().dump(theme) for theme in themes]})
+
+    async def post(self):
+        raise HTTPNotImplemented(text='Post method does not implemented')
 
 
 class QuestionAddView(View, AuthRequiredMixin):
@@ -65,8 +72,11 @@ class QuestionListView(View, AuthRequiredMixin):
         await self.check_auth()
 
         theme_id = self.request.query.get('theme_id')
+        # if theme_id:
+        #     questions = await self.store.quizzes.list_questions(theme_id)
+        # else:
+        #     questions = []
         questions = await self.store.quizzes.list_questions(theme_id)
-        print(questions)
 
         return json_response(data={
-            'themes': [QuestionSchema().dump(question) for question in questions]})
+            'questions': [QuestionSchema().dump(question) for question in questions]})

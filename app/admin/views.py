@@ -1,5 +1,6 @@
 import time
 
+from aiohttp.web_exceptions import HTTPNotImplemented
 from aiohttp_session import new_session, get_session
 
 from app.admin.schemes import AdminRequestSchema, AdminResponseSchema, AdminResponseDataSchema
@@ -29,6 +30,9 @@ class AdminLoginView(View):
         session['email'] = email
 
         return json_response(data=AdminResponseDataSchema().dump(admin))
+
+    async def get(self):
+        raise HTTPNotImplemented(text='Get method does not implemented')
 
 
 @docs(tags=['admin'],

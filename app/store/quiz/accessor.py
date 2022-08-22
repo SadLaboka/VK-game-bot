@@ -33,6 +33,7 @@ class QuizAccessor(BaseAccessor):
         return themes
 
     async def get_question_by_title(self, title: str) -> Optional[Question]:
+        print(title)
         questions = await self.list_questions()
         for question in questions:
             if question.title == title:
@@ -54,11 +55,11 @@ class QuizAccessor(BaseAccessor):
         if correct_answers != 1:
             raise HTTPUnprocessableEntity(text='Wrong number of correct answers')
 
-        if await self.get_question_by_title(title):
-            raise HTTPConflict(text='Question is already exists')
-
         if not await self.get_theme_by_id(theme_id):
             raise HTTPNotFound(text='Theme does not exists')
+
+        if await self.get_question_by_title(title) is not None:
+            raise HTTPConflict(text='Question is already exists')
 
         question = Question(
             id=self.app.database.next_question_id,

@@ -13,6 +13,9 @@ class Answer:
     title: str
     is_correct: bool
 
+    def __getitem__(self, item):
+        return getattr(self, item)
+
 
 @dataclass
 class Question:

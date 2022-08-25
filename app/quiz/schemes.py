@@ -14,7 +14,7 @@ class AnswerSchema(Schema):
 
 
 class QuestionSchema(Schema):
-    id = fields.Int(required=False)
+    id = fields.Int(dump_only=True)
     title = fields.Str(required=True)
     theme_id = fields.Int(required=True)
     answers = fields.Nested(AnswerSchema, many=True)

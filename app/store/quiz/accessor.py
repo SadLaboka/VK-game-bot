@@ -33,7 +33,6 @@ class QuizAccessor(BaseAccessor):
         return themes
 
     async def get_question_by_title(self, title: str) -> Optional[Question]:
-        print(title)
         questions = await self.list_questions()
         for question in questions:
             if question.title == title:

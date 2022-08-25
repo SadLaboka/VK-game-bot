@@ -30,7 +30,9 @@ class VkApiAccessor(BaseAccessor):
         await self.poller.start()
 
     async def disconnect(self, app: "Application"):
-        if self.session is not None:
+        if self.poller:
+            await self.poller.stop()
+        if self.session:
             await self.session.close()
 
     @staticmethod
@@ -64,6 +66,7 @@ class VkApiAccessor(BaseAccessor):
 
         async with self.session.get(url) as response:
             data = await response.json()
+            self.app.logger.info(data)
             if self.ts <= data['ts']:
                 self.ts = data['ts']
 
@@ -89,7 +92,7 @@ class VkApiAccessor(BaseAccessor):
             params={
                 'peer_id': message.user_id,
                 'message': message.text,
-                'random_id': randint(0, 4096),
+                'random_id': randint(1, 16000),
                 'access_token': self.app.config.bot.token
             }
         )
@@ -97,3 +100,4 @@ class VkApiAccessor(BaseAccessor):
         if self.session is not None:
             async with self.session.get(url) as response:
                 data = await response.json()
+                self.logger.info(data)

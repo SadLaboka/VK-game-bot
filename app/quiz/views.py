@@ -72,10 +72,6 @@ class QuestionListView(View, AuthRequiredMixin):
         await self.check_auth()
 
         theme_id = self.request.query.get('theme_id')
-        # if theme_id:
-        #     questions = await self.store.quizzes.list_questions(theme_id)
-        # else:
-        #     questions = []
         questions = await self.store.quizzes.list_questions(theme_id)
 
         return json_response(data={

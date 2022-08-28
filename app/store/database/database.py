@@ -52,4 +52,4 @@ class Database:
         )
 
     async def disconnect(self, *_: list, **__: dict) -> None:
-        await self._engine.dispose()
+        pass

@@ -1,0 +1,44 @@
+name: Check homework
+on: [push]
+jobs:
+  runner-job:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: 'ktshub/backend-summer-2021:task-9676ecaf-e2a4-473a-803f-df790da37aaa'
+      CONFIGPATH: /go/code/source/tests/config.yml
+      PYTHONPATH: /go/code/source
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: kts_pass
+          POSTGRES_USER: kts_user
+          POSTGRES_DB: kts
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+            python-version: 3.9
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: update pythonpath
+        run: echo "PYTHONPATH=$PYTHONPATH:/home/runner/work/hw-backend-summer-2022-3-sqlalchemy/hw-backend-summer-2022-3-sqlalchemy" >> $GITHUB_ENV
+
+      - name: set CONFIGPATH
+        run: echo "CONFIGPATH=/home/runner/work/hw-backend-summer-2022-3-sqlalchemy/hw-backend-summer-2022-3-sqlalchemy/tests/config.yml" >> $GITHUB_ENV
+
+      - name: handle migrations
+        run:  alembic upgrade head
+
+      - run: docker run --entrypoint /bin/bash -e GITHUB_REPOSITORY -e GITHUB_REF -e CONFIGPATH=${{ env.CONFIGPATH }} -e PYTHONPATH=${{ env.PYTHONPATH }} --network host --mount src="$(pwd)",target=/go/code/source,type=bind ${{ env.IMAGE }} -c "mv build/main source && ls -lah && cd source && ./main"
+

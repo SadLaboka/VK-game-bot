@@ -45,3 +45,6 @@ class AdminCurrentView(View, AuthRequiredMixin):
         admin = await self.check_auth()
 
         return json_response(data=AdminResponseDataSchema().dump(admin))
+
+    async def post(self):
+        raise HTTPNotImplemented(text='Post method does not implemented')

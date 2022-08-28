@@ -1,10 +1,16 @@
-user_token: YTkyMmNiNTktN2ZjNS00ZTRmLWI2MTMtOGRhOGNiMTU4ODVkXzMxNDk=
+user_token:
 
 session:
   key: CaY5iCkYtN7DqXdiYK1BvmGrQuaSA4Tl4bEk9my0jc0=
 admin:
   email: admin@admin.com
   password: admin
+database:
+  host: 0.0.0.0
+  port: 5432
+  user: postgres
+  password: 1234
+  database: kts
 bot:
   token: vk1.a.3KYnYiMO4qq7wcY_iWLybDwGPKf8fXEv-jb2bbRaZ4yQPK0TckM8bwAIp3jsOyx6wzKLm0ambVv-yAuaNKqAHaXCvJ3-P98TkN-78E00u4UsbNu9tu49LWbpwHMlhnG1fb-exZPZkZtXio37Yl8aIUD8_e0eHXFh9-tQImLVQwT4mIfjd3tAdsH3hAOzTvD4
   group_id: 215490947

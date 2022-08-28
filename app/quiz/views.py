@@ -3,7 +3,7 @@ from aiohttp_apispec import request_schema, response_schema, docs, querystring_s
 
 from app.quiz.schemes import (
     ThemeSchema, ThemeIdSchema, ThemeListResponseSchema, QuestionSchema, QuestionResponseSchema,
-    ListQuestionResponseSchema, QuestionGetRequestSchema,
+    ListQuestionResponseSchema, QuestionGetRequestSchema, AnswerSchema,
 )
 from app.web.app import View
 from app.web.mixins import AuthRequiredMixin
@@ -58,8 +58,8 @@ class QuestionAddView(View, AuthRequiredMixin):
             theme_id=data['theme_id'],
             answers=data['answers']
         )
-        print(question)
-        return json_response(data=QuestionSchema().dump(question))
+        data = await self.store.quizzes.get_questions_with_answers(question)
+        return json_response(data=data)
 
 
 class QuestionListView(View, AuthRequiredMixin):
@@ -71,8 +71,8 @@ class QuestionListView(View, AuthRequiredMixin):
     async def get(self):
         await self.check_auth()
 
-        theme_id = self.request.query.get('theme_id')
+        theme_id = int(self.request.query.get('theme_id'))
         questions = await self.store.quizzes.list_questions(theme_id)
 
         return json_response(data={
-            'questions': [QuestionSchema().dump(question) for question in questions]})
+            'questions': [await self.store.quizzes.get_questions_with_answers(question) for question in questions]})

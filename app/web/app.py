@@ -8,7 +8,6 @@ from aiohttp.web import (
 from aiohttp_apispec import setup_aiohttp_apispec
 from aiohttp_session import setup as setup_aiohttp_session
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
-from cryptography.fernet import Fernet
 
 from app.admin.models import Admin
 from app.store import setup_store, Store
@@ -23,7 +22,6 @@ class Application(AiohttpApplication):
     config: Optional[Config] = None
     store: Optional[Store] = None
     database: Optional[Database] = None
-    cryptographer: Optional[Fernet] = None
 
 
 class Request(AiohttpRequest):

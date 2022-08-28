@@ -2,7 +2,6 @@ import typing
 from dataclasses import dataclass
 
 import yaml
-from cryptography.fernet import Fernet
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application
@@ -26,10 +25,21 @@ class BotConfig:
 
 
 @dataclass
+class DatabaseConfig:
+    host: str = "localhost"
+    port: int = 5432
+    user: str = "postgres"
+    password: str = "postgres"
+    database: str = "project"
+
+
+@dataclass
 class Config:
     admin: AdminConfig
     session: SessionConfig = None
     bot: BotConfig = None
+    database: DatabaseConfig = None
+    database_url: str = None
 
 
 def setup_config(app: "Application", config_path: str):
@@ -45,6 +55,15 @@ def setup_config(app: "Application", config_path: str):
         bot=BotConfig(
             token=raw_config["bot"]["token"],
             group_id=raw_config["bot"]["group_id"]
-        )
+        ),
+        database=DatabaseConfig(
+            host=raw_config["database"]["host"],
+            port=raw_config["database"]["port"],
+            user=raw_config["database"]["user"],
+            password=raw_config["database"]["password"],
+            database=raw_config["database"]["database"]
+        ),
     )
-    app.cryptographer = Fernet(key=Fernet.generate_key())
+    db_conf = app.config.database
+    app.config.database_url = f"postgresql+asyncpg://" \
+                              f"{db_conf.user}:{db_conf.password}@{db_conf.host}:{db_conf.port}/{db_conf.database}"

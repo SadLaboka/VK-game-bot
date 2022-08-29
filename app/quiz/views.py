@@ -1,5 +1,6 @@
-from aiohttp.web_exceptions import HTTPNotImplemented
+from aiohttp.web_exceptions import HTTPNotImplemented, HTTPConflict
 from aiohttp_apispec import request_schema, response_schema, docs, querystring_schema
+from sqlalchemy.exc import IntegrityError
 
 from app.quiz.schemes import (
     ThemeSchema, ThemeIdSchema, ThemeListResponseSchema, QuestionSchema, QuestionResponseSchema,
@@ -20,8 +21,11 @@ class ThemeAddView(View, AuthRequiredMixin):
         await self.check_auth()
 
         title = self.data['title']
-        theme = await self.store.quizzes.create_theme(title=title)
-        return json_response(data=ThemeSchema().dump(theme))
+        try:
+            theme = await self.store.quizzes.create_theme(title=title)
+            return json_response(data=ThemeSchema().dump(theme))
+        except IntegrityError:
+            raise HTTPConflict(text="Theme is already exists")
 
     async def get(self):
         raise HTTPNotImplemented(text='Get method does not implemented')

@@ -77,10 +77,10 @@ class VkApiAccessor(BaseAccessor):
                         text = update['object']['message']['text']
                         updates.append(Update(
                             type=update['type'],
-                            object=UpdateObject(message=UpdateMessage(
-                                text=text,
+                            object=UpdateObject(
+                                body=text,
                                 id=1,
-                                from_id=from_id))))
+                                user_id=from_id)))
 
                 if len(updates):
                     await self.app.store.bots_manager.handle_updates(updates)

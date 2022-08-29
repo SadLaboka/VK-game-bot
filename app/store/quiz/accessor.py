@@ -9,16 +9,16 @@ from app.quiz.schemes import QuestionSchema, AnswerSchema
 
 
 class QuizAccessor(BaseAccessor):
-    async def create_theme(self, title: str) -> ThemeModel:
-        if await self.get_theme_by_title(title):
-            raise HTTPConflict(text="Theme is already exists")
+    async def create_theme(self, title: str) -> Theme:
+        # if await self.get_theme_by_title(title):
+        #     raise HTTPConflict(text="Theme is already exists")
         theme = ThemeModel(title=title)
         async with self.app.database.session() as conn:
             conn.add(theme)
             await conn.commit()
             await conn.refresh(theme)
 
-        return theme
+        return Theme(id=theme.id, title=theme.title)
 
     async def get_theme_by_title(self, title: str) -> Optional[Theme]:
         async with self.app.database.session() as conn:
@@ -41,13 +41,20 @@ class QuizAccessor(BaseAccessor):
             ))
         return list_themes
 
-    async def get_question_by_title(self, title: str) -> Optional[QuestionModel]:
+    async def get_question_by_title(self, title: str) -> Optional[Question]:
         async with self.app.database.session() as conn:
             question = (await conn.scalars(select(QuestionModel).where(QuestionModel.title == title))).first()
-        return question
+        if question:
+            answers = await self.get_answers_by_question(question_id=question.id)
+            return Question(
+                id=question.id,
+                theme_id=question.theme_id,
+                title=question.title,
+                answers=answers
+            )
 
     async def create_question(
-            self, title: str, theme_id: int, answers: list[Answer]
+            self, title: str, theme_id: int, answers: List[Answer]
     ) -> Question:
         correct_answers = 0
         for answer in answers:
@@ -60,11 +67,11 @@ class QuizAccessor(BaseAccessor):
         if correct_answers != 1:
             raise HTTPUnprocessableEntity(text='Wrong number of correct answers')
 
-        if not await self.get_theme_by_id(theme_id):
-            raise HTTPNotFound(text='Theme does not exists')
-
-        if await self.get_question_by_title(title) is not None:
-            raise HTTPConflict(text='Question is already exists')
+        # if not await self.get_theme_by_id(theme_id):
+        #     raise HTTPNotFound(text='Theme does not exists')
+        #
+        # if await self.get_question_by_title(title) is not None:
+        #     raise HTTPConflict(text='Question is already exists')
 
         question = QuestionModel(
             title=title,
@@ -84,7 +91,7 @@ class QuizAccessor(BaseAccessor):
 
         return new_question
 
-    async def create_answers(self, question_id, answers: list[Answer]) -> list[Answer]:
+    async def create_answers(self, question_id, answers: list[Answer]) -> List[Answer]:
         async with self.app.database.session() as conn:
             for answer in answers:
                 new_answer = AnswerModel(
@@ -97,7 +104,7 @@ class QuizAccessor(BaseAccessor):
 
         return answers
 
-    async def list_questions(self, theme_id: Optional[int] = None) -> list[Question]:
+    async def list_questions(self, theme_id: Optional[int] = None) -> List[Question]:
         async with self.app.database.session() as conn:
             if theme_id is None:
                 questions = (await conn.scalars(select(QuestionModel))).fetchall()

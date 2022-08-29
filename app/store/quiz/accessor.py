@@ -2,6 +2,7 @@ from typing import Optional, Tuple, List
 
 from aiohttp.web_exceptions import HTTPConflict, HTTPUnprocessableEntity, HTTPNotFound
 from sqlalchemy import insert, select
+from sqlalchemy.exc import IntegrityError
 
 from app.base.base_accessor import BaseAccessor
 from app.quiz.models import Theme, Question, Answer, ThemeModel, QuestionModel, AnswerModel
@@ -10,8 +11,8 @@ from app.quiz.schemes import QuestionSchema, AnswerSchema
 
 class QuizAccessor(BaseAccessor):
     async def create_theme(self, title: str) -> Theme:
-        # if await self.get_theme_by_title(title):
-        #     raise HTTPConflict(text="Theme is already exists")
+        if await self.get_theme_by_title(title):
+            raise HTTPConflict(text="Theme is already exists")
         theme = ThemeModel(title=title)
         async with self.app.database.session() as conn:
             conn.add(theme)
@@ -70,26 +71,26 @@ class QuizAccessor(BaseAccessor):
         if not await self.get_theme_by_id(theme_id):
             raise HTTPNotFound(text='Theme does not exists')
         #
-        if await self.get_question_by_title(title) is not None:
-            raise HTTPConflict(text='Question is already exists')
+        # if await self.get_question_by_title(title) is not None:
+        #     raise HTTPConflict(text='Question is already exists')
+        try:
+            question = QuestionModel(
+                title=title,
+                theme_id=theme_id)
+            async with self.app.database.session() as conn:
+                conn.add(question)
+                await conn.commit()
+                await conn.refresh(question)
 
-        question = QuestionModel(
-            title=title,
-            theme_id=theme_id)
-        async with self.app.database.session() as conn:
-            conn.add(question)
-            await conn.commit()
-            await conn.refresh(question)
+            new_question = Question(
+                id=question.id,
+                theme_id=question.theme_id,
+                title=question.title,
+                answers=(await self.create_answers(
+                    question_id=question.id, answers=answers))
+            )
 
-        new_question = Question(
-            id=question.id,
-            theme_id=question.theme_id,
-            title=question.title,
-            answers=(await self.create_answers(
-                question_id=question.id, answers=answers))
-        )
-
-        return new_question
+            return new_question
 
     async def create_answers(self, question_id, answers: list[Answer]) -> List[Answer]:
         async with self.app.database.session() as conn:

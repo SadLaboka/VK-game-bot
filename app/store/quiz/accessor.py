@@ -78,7 +78,8 @@ class QuizAccessor(BaseAccessor):
             id=question.id,
             theme_id=question.theme_id,
             title=question.title,
-            answers=answers
+            answers=(await self.create_answers(
+                question_id=question.id, answers=answers))
         )
 
         return new_question

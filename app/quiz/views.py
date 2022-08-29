@@ -58,8 +58,7 @@ class QuestionAddView(View, AuthRequiredMixin):
             theme_id=data['theme_id'],
             answers=data['answers']
         )
-        data = await self.store.quizzes.get_questions_with_answers(question)
-        return json_response(data=data)
+        return json_response(data=QuestionSchema().dump(question))
 
 
 class QuestionListView(View, AuthRequiredMixin):
@@ -71,8 +70,8 @@ class QuestionListView(View, AuthRequiredMixin):
     async def get(self):
         await self.check_auth()
 
-        theme_id = int(self.request.query.get('theme_id'))
+        theme_id = self.request.query.get('theme_id')
         questions = await self.store.quizzes.list_questions(theme_id)
 
         return json_response(data={
-            'questions': [await self.store.quizzes.get_questions_with_answers(question) for question in questions]})
+            'questions': [QuestionSchema().dump(question) for question in questions]})

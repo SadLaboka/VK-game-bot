@@ -67,11 +67,11 @@ class QuizAccessor(BaseAccessor):
         if correct_answers != 1:
             raise HTTPUnprocessableEntity(text='Wrong number of correct answers')
 
-        # if not await self.get_theme_by_id(theme_id):
-        #     raise HTTPNotFound(text='Theme does not exists')
+        if not await self.get_theme_by_id(theme_id):
+            raise HTTPNotFound(text='Theme does not exists')
         #
-        # if await self.get_question_by_title(title) is not None:
-        #     raise HTTPConflict(text='Question is already exists')
+        if await self.get_question_by_title(title) is not None:
+            raise HTTPConflict(text='Question is already exists')
 
         question = QuestionModel(
             title=title,

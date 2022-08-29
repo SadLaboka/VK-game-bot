@@ -1,4 +1,4 @@
-from aiohttp.web_exceptions import HTTPNotImplemented, HTTPConflict
+from aiohttp.web_exceptions import HTTPNotImplemented, HTTPConflict, HTTPNotFound
 from aiohttp_apispec import request_schema, response_schema, docs, querystring_schema
 from sqlalchemy.exc import IntegrityError
 
@@ -57,11 +57,14 @@ class QuestionAddView(View, AuthRequiredMixin):
         await self.check_auth()
 
         data = self.request['data']
-        question = await self.store.quizzes.create_question(
-            title=data['title'],
-            theme_id=data['theme_id'],
-            answers=data['answers']
-        )
+        try:
+            question = await self.store.quizzes.create_question(
+                title=data['title'],
+                theme_id=data['theme_id'],
+                answers=data['answers']
+            )
+        except IntegrityError:
+            raise HTTPNotFound(text='Theme does not exists')
         return json_response(data=QuestionSchema().dump(question))
 
 

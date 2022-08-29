@@ -11,8 +11,8 @@ from app.quiz.schemes import QuestionSchema, AnswerSchema
 
 class QuizAccessor(BaseAccessor):
     async def create_theme(self, title: str) -> Theme:
-        if await self.get_theme_by_title(title):
-            raise HTTPConflict(text="Theme is already exists")
+        # if await self.get_theme_by_title(title):
+        #     raise HTTPConflict(text="Theme is already exists")
         theme = ThemeModel(title=title)
         async with self.app.database.session() as conn:
             conn.add(theme)

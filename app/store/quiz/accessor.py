@@ -1,12 +1,10 @@
-from typing import Optional, Tuple, List
+from typing import Optional, List
 
 from aiohttp.web_exceptions import HTTPConflict, HTTPUnprocessableEntity, HTTPNotFound
-from sqlalchemy import insert, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 
 from app.base.base_accessor import BaseAccessor
 from app.quiz.models import Theme, Question, Answer, ThemeModel, QuestionModel, AnswerModel
-from app.quiz.schemes import QuestionSchema, AnswerSchema
 
 
 class QuizAccessor(BaseAccessor):
@@ -70,7 +68,7 @@ class QuizAccessor(BaseAccessor):
         if correct_answers != 1:
             raise HTTPUnprocessableEntity(text='Wrong number of correct answers')
 
-        if not await self.get_theme_by_id(theme_id):
+        if theme_id and not await self.get_theme_by_id(theme_id):
             raise HTTPNotFound(text='Theme does not exists')
         #
         # if await self.get_question_by_title(title) is not None:

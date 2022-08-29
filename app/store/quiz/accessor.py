@@ -73,24 +73,22 @@ class QuizAccessor(BaseAccessor):
         #
         # if await self.get_question_by_title(title) is not None:
         #     raise HTTPConflict(text='Question is already exists')
-        try:
-            question = QuestionModel(
-                title=title,
-                theme_id=theme_id)
-            async with self.app.database.session() as conn:
-                conn.add(question)
-                await conn.commit()
-                await conn.refresh(question)
 
-            new_question = Question(
-                id=question.id,
-                theme_id=question.theme_id,
-                title=question.title,
-                answers=(await self.create_answers(
-                    question_id=question.id, answers=answers))
-            )
-
-            return new_question
+        question = QuestionModel(
+            title=title,
+            theme_id=theme_id)
+        async with self.app.database.session() as conn:
+            conn.add(question)
+            await conn.commit()
+            await conn.refresh(question)
+        new_question = Question(
+            id=question.id,
+            theme_id=question.theme_id,
+            title=question.title,
+            answers=(await self.create_answers(
+                question_id=question.id, answers=answers))
+        )
+        return new_question
 
     async def create_answers(self, question_id, answers: list[Answer]) -> List[Answer]:
         async with self.app.database.session() as conn:

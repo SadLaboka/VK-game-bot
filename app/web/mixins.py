@@ -18,7 +18,7 @@ class AuthRequiredMixin:
         try:
             admin = await self.store.admins.get_by_email(email)
         except NotRegistered:
-            raise HTTPForbidden
+            raise HTTPForbidden(text='Admin does not registered')
 
         session['last_visit'] = time.time()
-        return admin
+        return admin.to_dc()

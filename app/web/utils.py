@@ -1,3 +1,4 @@
+import json
 import typing
 from hashlib import sha256
 
@@ -54,5 +55,9 @@ async def authenticate(email: str, password: str, app: "Application") -> Admin:
         raise HTTPForbidden(text='Wrong password')
 
 
-def is_password_valid(admin: AdminModel, password: str):
-    return admin.password == sha256(password.encode()).hexdigest()
+def get_text_from_exception(e: Exception) -> Optional[str]:
+    try:
+        data = json.loads(e.text)
+    except Exception:
+        data = e.text
+    return data

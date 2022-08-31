@@ -37,6 +37,12 @@ class ThemeModel(db):
     title = Column(String(60), nullable=False, unique=True)
     questions = relationship("QuestionModel", back_populates='themes', cascade="all, delete", passive_deletes=True)
 
+    def to_dc(self) -> Theme:
+        return Theme(
+            id=self.id,
+            title=self.title
+        )
+
 
 class QuestionModel(db):
     __tablename__ = "questions"
@@ -47,6 +53,14 @@ class QuestionModel(db):
     themes = relationship("ThemeModel", back_populates='questions')
     answers = relationship("AnswerModel", back_populates='questions')
 
+    def to_dc(self) -> Question:
+        return Question(
+            id=self.id,
+            title=self.title,
+            theme_id=self.theme_id,
+            answers=[a.to_dc() for a in self.answers],
+        )
+
 
 class AnswerModel(db):
     __tablename__ = "answers"
@@ -56,3 +70,9 @@ class AnswerModel(db):
     is_correct = Column(Boolean(), nullable=False)
     question_id = Column(Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False)
     questions = relationship("QuestionModel", back_populates='answers')
+
+    def to_dc(self) -> Answer:
+        return Answer(
+            title=self.title,
+            is_correct=self.is_correct
+        )

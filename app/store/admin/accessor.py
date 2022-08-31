@@ -2,8 +2,10 @@ import typing
 
 from hashlib import sha256
 
-from sqlalchemy import insert, select
+from sqlalchemy import select
 from typing import Optional
+
+from sqlalchemy.exc import IntegrityError
 
 from app.base.base_accessor import BaseAccessor
 from app.admin.models import Admin, AdminModel
@@ -26,20 +28,20 @@ class AdminAccessor(BaseAccessor):
             password=encrypted_pass
         )
         try:
-            async with self.app.database.session() as conn:
+            async with self.app.database.session.begin() as conn:
                 conn.add(admin)
-                await conn.commit()
-        except Exception:
+        except IntegrityError:
             pass
 
-    async def get_by_email(self, email: str) -> Optional[AdminModel]:
-        async with self.app.database.session() as conn:
-            admin = (await conn.scalars(select(AdminModel).where(AdminModel.email == email))).first()
+    async def get_by_email(self, email: str) -> Optional[Admin]:
+        async with self.app.database.session.begin() as conn:
+            admin = (
+                await conn.scalars(
+                    select(AdminModel).where(AdminModel.email == email)
+                                   )
+            ).first()
 
         if admin:
             return admin
         else:
             raise NotRegistered
-
-    async def create_admin(self, id_: int, email: str, password: sha256) -> Admin:
-        return Admin(id=id_, email=email, password=password)

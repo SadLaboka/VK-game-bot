@@ -24,8 +24,9 @@ class ThemeAddView(View, AuthRequiredMixin):
         try:
             theme = await self.store.quizzes.create_theme(title=title)
             return json_response(data=ThemeSchema().dump(theme))
-        except IntegrityError:
-            raise HTTPConflict(text="Theme is already exists")
+        except IntegrityError as e:
+            if e.orig.pgcode == "23505":
+                raise HTTPConflict(text="Theme is already exists")
 
     async def get(self):
         raise HTTPNotImplemented(text='Get method does not implemented')
@@ -63,9 +64,17 @@ class QuestionAddView(View, AuthRequiredMixin):
                 theme_id=data['theme_id'],
                 answers=data['answers']
             )
-        except IntegrityError:
-            raise HTTPNotFound(text='Theme does not exists')
-        return json_response(data=QuestionSchema().dump(question))
+            return json_response(data=QuestionSchema().dump(question))
+        except IntegrityError as e:
+            if e.orig.pgcode == '23503':
+                raise HTTPNotFound(text='Theme does not exists')
+            elif e.orig.pgcode == '23502':
+                raise HTTPNotFound(text='No theme id specified')
+            elif e.orig.pgcode == '23505':
+                raise HTTPConflict(text='Question is already exists')
+
+    async def get(self):
+        raise HTTPNotImplemented(text='Get method does not implemented')
 
 
 class QuestionListView(View, AuthRequiredMixin):
@@ -82,3 +91,6 @@ class QuestionListView(View, AuthRequiredMixin):
 
         return json_response(data={
             'questions': [QuestionSchema().dump(question) for question in questions]})
+
+    async def post(self):
+        raise HTTPNotImplemented(text='Post method does not implemented')

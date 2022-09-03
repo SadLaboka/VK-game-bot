@@ -25,7 +25,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Up docker-compose
-      run: make docker
+      run: docker-compose up -d
     - name: Install dependencies
       run: pip install -r requirements.txt
     - name: Lint with flake8

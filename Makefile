@@ -9,7 +9,7 @@ test:
 	python -m pytest
 
 docker:
-	docker-compose up --build
+	docker-compose up --build -d
 
 coverage:
 	python -m pytest --cov=app --cov-report=xml

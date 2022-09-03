@@ -63,3 +63,46 @@ class TestAdminLoginView:
         assert resp.status == 405
         data = await resp.json()
         assert data["status"] == "not_implemented"
+
+
+class TestAdminCurrentView:
+    async def test_success(self, authed_cli, config):
+        resp = await authed_cli.get(
+            '/admin.current',
+            json={
+                "id": 1,
+                "email": config.admin.email
+            }
+        )
+        assert resp.status == 200
+        data = await resp.json()
+        assert data == ok_response(
+            {
+                "id": 1,
+                "email": config.admin.email,
+            }
+        )
+
+    async def test_unauthorized(self, cli, config):
+        resp = await cli.get(
+            "/admin.current",
+            json={
+                "id": 1,
+                "email": config.admin.email
+            }
+        )
+        assert resp.status == 401
+        data = await resp.json()
+        assert data["status"] == "unauthorized"
+
+    async def test_different_method(self, authed_cli):
+        resp = await authed_cli.get(
+            "/admin.login",
+            json={
+                "email": "qwerty",
+                "password": "qwerty",
+            },
+        )
+        assert resp.status == 405
+        data = await resp.json()
+        assert data["status"] == "not_implemented"

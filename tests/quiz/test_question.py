@@ -2,6 +2,7 @@ import pytest
 from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
+from webargs.aiohttpparser import HTTPUnprocessableEntity
 
 from app.quiz.models import Answer, AnswerModel, Question, QuestionModel, Theme
 from app.store import Store

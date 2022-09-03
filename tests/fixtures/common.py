@@ -58,7 +58,9 @@ async def clear_db(server):
         connection = session.connection()
         for table in server.database._db.metadata.tables:
             await session.execute(text(f"TRUNCATE {table} CASCADE"))
-            await session.execute(text(f"ALTER SEQUENCE {table}_id_seq RESTART WITH 1"))
+            await session.execute(
+                text(f"ALTER SEQUENCE {table}_id_seq RESTART WITH 1")
+            )
 
         await session.commit()
         connection.close()

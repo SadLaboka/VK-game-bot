@@ -38,7 +38,7 @@ class AdminAccessor(BaseAccessor):
             admin = (
                 await conn.scalars(
                     select(AdminModel).where(AdminModel.email == email)
-                                   )
+                )
             ).first()
 
         if admin:

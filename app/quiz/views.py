@@ -1,10 +1,17 @@
-from aiohttp.web_exceptions import HTTPNotImplemented, HTTPConflict, HTTPNotFound
-from aiohttp_apispec import request_schema, response_schema, docs, querystring_schema
+from aiohttp.web_exceptions import (
+    HTTPNotImplemented,
+    HTTPConflict,
+    HTTPNotFound
+)
+from aiohttp_apispec import (
+    request_schema, response_schema, docs, querystring_schema
+)
 from sqlalchemy.exc import IntegrityError
 
 from app.quiz.schemes import (
-    ThemeSchema, ThemeIdSchema, ThemeListResponseSchema, QuestionSchema, QuestionResponseSchema,
-    ListQuestionResponseSchema, QuestionGetRequestSchema, AnswerSchema,
+    ThemeSchema, ThemeIdSchema, ThemeListResponseSchema,
+    QuestionSchema, QuestionResponseSchema,
+    ListQuestionResponseSchema, QuestionGetRequestSchema,
 )
 from app.web.app import View
 from app.web.mixins import AuthRequiredMixin
@@ -90,7 +97,9 @@ class QuestionListView(View, AuthRequiredMixin):
         questions = await self.store.quizzes.list_questions(theme_id)
 
         return json_response(data={
-            'questions': [QuestionSchema().dump(question) for question in questions]})
+            'questions': [
+                QuestionSchema().dump(question) for question in questions
+            ]})
 
     async def post(self):
         raise HTTPNotImplemented(text='Post method does not implemented')

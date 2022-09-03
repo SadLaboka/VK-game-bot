@@ -53,7 +53,12 @@ def setup_app(config_path: str) -> Application:
     setup_logging(app)
     setup_config(app, config_path)
     setup_routes(app)
-    setup_aiohttp_apispec(app, title='API server', url='/docs/json', swagger_path='/docs')
+    setup_aiohttp_apispec(
+        app,
+        title='API server',
+        url='/docs/json',
+        swagger_path='/docs'
+    )
     setup_middlewares(app)
     setup_aiohttp_session(app, EncryptedCookieStorage(app.config.session.key))
     setup_store(app)

@@ -1,11 +1,17 @@
 from typing import Optional, List
 
-from aiohttp.web_exceptions import HTTPConflict, HTTPUnprocessableEntity, HTTPNotFound
+from aiohttp.web_exceptions import (
+    HTTPConflict,
+    HTTPUnprocessableEntity,
+    HTTPNotFound
+)
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
-from app.quiz.models import Theme, Question, Answer, ThemeModel, QuestionModel, AnswerModel
+from app.quiz.models import (
+    Theme, Question, Answer, ThemeModel, QuestionModel, AnswerModel
+)
 
 
 class QuizAccessor(BaseAccessor):
@@ -45,7 +51,7 @@ class QuizAccessor(BaseAccessor):
                     .where(QuestionModel.title == title)
                     .options(joinedload(QuestionModel.answers)))
             ).first()
-        return question.to_dcl() if question else None
+        return question.to_dc() if question else None
 
     async def create_question(
             self, title: str, theme_id: int, answers: List[Answer]

@@ -66,5 +66,6 @@ def setup_config(app: "Application", config_path: str):
     )
     db_conf = app.config.database
     app.config.database_url = f"postgresql+asyncpg://" \
-                              f"{db_conf.user}:{db_conf.password}@{db_conf.host}:" \
+                              f"{db_conf.user}:" \
+                              f"{db_conf.password}@{db_conf.host}:" \
                               f"{db_conf.port}/{db_conf.database}"

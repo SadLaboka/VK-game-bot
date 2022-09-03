@@ -35,7 +35,12 @@ class ThemeModel(db):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(60), nullable=False, unique=True)
-    questions = relationship("QuestionModel", back_populates='themes', cascade="all, delete", passive_deletes=True)
+    questions = relationship(
+        "QuestionModel",
+        back_populates='themes',
+        cascade="all, delete",
+        passive_deletes=True
+    )
 
     def to_dc(self) -> Theme:
         return Theme(
@@ -49,7 +54,10 @@ class QuestionModel(db):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(60), nullable=False, unique=True)
-    theme_id = Column(Integer, ForeignKey("themes.id", ondelete="CASCADE"), nullable=False)
+    theme_id = Column(
+        Integer,
+        ForeignKey("themes.id", ondelete="CASCADE"), nullable=False
+    )
     themes = relationship("ThemeModel", back_populates='questions')
     answers = relationship("AnswerModel", back_populates='questions')
 
@@ -68,7 +76,10 @@ class AnswerModel(db):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(60), nullable=False)
     is_correct = Column(Boolean(), nullable=False)
-    question_id = Column(Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False)
+    question_id = Column(
+        Integer,
+        ForeignKey("questions.id", ondelete="CASCADE"), nullable=False
+    )
     questions = relationship("QuestionModel", back_populates='answers')
 
     def to_dc(self) -> Answer:

@@ -1,9 +1,12 @@
 import time
 
 from aiohttp.web_exceptions import HTTPNotImplemented
-from aiohttp_session import new_session, get_session
+from aiohttp_session import new_session
 
-from app.admin.schemes import AdminRequestSchema, AdminResponseSchema, AdminResponseDataSchema
+from app.admin.schemes import (
+    AdminRequestSchema,
+    AdminResponseSchema,
+    AdminResponseDataSchema)
 from app.web.app import View
 
 from aiohttp_apispec import docs, request_schema, response_schema

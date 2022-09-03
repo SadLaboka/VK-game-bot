@@ -4,3 +4,6 @@ venv/
 .coverage
 .coveragerc
 .DS_store
+.env
+coverage.xml
+.pytest_cache

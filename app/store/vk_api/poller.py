@@ -13,7 +13,9 @@ class Poller:
 
     def _done_callback(self, future: Future):
         if future.exception():
-            self.store.app.logger.exception('polling failed', exc_info=future.exception())
+            self.store.app.logger.exception(
+                'polling failed', exc_info=future.exception()
+            )
 
     async def start(self):
         task = asyncio.create_task(self.poll())

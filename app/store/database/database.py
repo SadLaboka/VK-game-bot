@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncSession, AsyncEngine, create_async_engine
+)
 from sqlalchemy.orm import declarative_base, sessionmaker, scoped_session
 
 from app.store.database.sqlalchemy_base import db

@@ -47,11 +47,15 @@ class TestThemeStore:
         self, cli, theme_1: Theme, question_1: Question
     ):
         async with cli.app.database.session() as session:
-            await session.execute(delete(ThemeModel).where(ThemeModel.id == theme_1.id))
+            await session.execute(
+                delete(ThemeModel).where(ThemeModel.id == theme_1.id)
+            )
             await session.commit()
 
             res = await session.execute(
-                select(QuestionModel).where(QuestionModel.theme_id == theme_1.id)
+                select(QuestionModel).where(
+                    QuestionModel.theme_id == theme_1.id
+                )
             )
             db_questions = res.scalars().all()
 
@@ -80,11 +84,14 @@ class TestThemeAddView:
         assert resp.status == 200
         data = await resp.json()
         assert data == ok_response(
-            data=theme2dict(Theme(id=data["data"]["id"], title="web-development")),
+            data=theme2dict(Theme(id=data["data"]["id"],
+                                  title="web-development")),
         )
         theme_by_id = await store.quizzes.get_theme_by_id(data["data"]["id"])
         assert theme_by_id is not None
-        theme_by_title = await store.quizzes.get_theme_by_title("web-development")
+        theme_by_title = await store.quizzes.get_theme_by_title(
+            "web-development"
+        )
         assert theme_by_title is not None
 
         assert theme_by_id.id == theme_by_title.id
@@ -168,5 +175,6 @@ class TestIntegration:
         assert resp.status == 200
         data = await resp.json()
         assert data == ok_response(
-            data={"themes": [theme2dict(Theme(id=theme_id, title="integration"))]}
+            data={"themes": [theme2dict(Theme(id=theme_id,
+                                              title="integration"))]}
         )

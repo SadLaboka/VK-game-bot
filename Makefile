@@ -8,5 +8,8 @@ migrate:
 test:
 	python -m pytest
 
+docker:
+	docker-compose up --build
+
 coverage:
 	python -m pytest --cov=app --cov-report=xml

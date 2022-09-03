@@ -9,6 +9,6 @@ bot:
 database:
   host: 0.0.0.0
   port: 5432
-  user: postgres
-  password: 1234
+  user: kts
+  password: kts
   database: kts

@@ -1,27 +1,32 @@
 from dataclasses import dataclass
+from typing import Optional, Union
 
 
 @dataclass
 class Message:
-    user_id: int
+    peer_id: int
     text: str
-
-
-@dataclass
-class UpdateMessage:
-    from_id: int
-    text: str
-    id: int
 
 
 @dataclass
 class UpdateObject:
-    id: int
     user_id: int
-    body: str
+    peer_id: int
+
+
+@dataclass
+class UpdateMessage(UpdateObject):
+    action: dict
+    text: str
+
+
+@dataclass
+class UpdateCallback(UpdateObject):
+    payload: dict
+    message_id: Optional[str] = None
 
 
 @dataclass
 class Update:
     type: str
-    object: UpdateObject
+    object: Union[UpdateMessage, UpdateCallback]

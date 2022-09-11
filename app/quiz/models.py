@@ -27,6 +27,7 @@ class Question:
     id: int
     title: str
     theme_id: int
+    difficulty_id: int
     answers: List[Answer]
 
 
@@ -54,18 +55,25 @@ class QuestionModel(db):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(60), nullable=False, unique=True)
+    difficulty_id = Column(
+        Integer,
+        ForeignKey("difficulties.id", ondelete="CASCADE"),
+        nullable=False
+    )
     theme_id = Column(
         Integer,
         ForeignKey("themes.id", ondelete="CASCADE"), nullable=False
     )
     themes = relationship("ThemeModel", back_populates='questions')
     answers = relationship("AnswerModel", back_populates='questions')
+    difficulty = relationship("DifficultyModel", back_populates='questions')
 
     def to_dc(self) -> Question:
         return Question(
             id=self.id,
             title=self.title,
             theme_id=self.theme_id,
+            difficulty_id=self.difficulty_id,
             answers=[a.to_dc() for a in self.answers],
         )
 

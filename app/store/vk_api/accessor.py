@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 from typing import Optional, List, TYPE_CHECKING
@@ -23,6 +24,7 @@ class VkApiAccessor(BaseAccessor):
         self.server: Optional[str] = None
         self.pollers: List[Poller] = []
         self.ts: Optional[int] = None
+        self.queue = asyncio.LifoQueue()
 
     async def add_poller(self, poller: Poller):
         self.pollers.append(poller)
@@ -40,7 +42,7 @@ class VkApiAccessor(BaseAccessor):
 
     async def disconnect(self, app: "Application"):
         if self.pollers:
-            for poller in self.pollers:
+            for poller in self.pollers[::-1]:
                 await poller.stop()
         if self.session:
             await self.session.close()
@@ -80,41 +82,32 @@ class VkApiAccessor(BaseAccessor):
             if self.ts <= data['ts']:
                 self.ts = data['ts']
 
-                updates = list()
                 for update in data['updates']:
                     update = await self._create_update(update)
                     if update:
-                        updates.append(update)
-        return updates
+                        await self.queue.put(update)
 
     @staticmethod
     async def _create_update(update: dict) -> Optional[Update]:
         if update['type'] == 'message_new':
-            from_id = update['object']['message']['from_id']
-            text = update['object']['message']['text']
-            peer_id = update['object']['message']['peer_id']
-            action = update['object']['message']['action']
+            data = update['object']['message']
             return Update(
                 type=update['type'],
                 object=UpdateMessage(
-                    text=text,
-                    user_id=from_id,
-                    peer_id=peer_id,
-                    action=action
+                    text=data['text'],
+                    user_id=data['from_id'],
+                    peer_id=data['peer_id'],
+                    action=data['action']
                 ))
         elif update['type'] == 'message_event':
-            from_id = update['object']['user_id']
-            peer_id = update['object']['peer_id']
-            payload = update['object']['payload']
-            message_id = \
-                update['object'].get("conversation_message_id")
+            data = update['object']
             return Update(
                 type=update['type'],
                 object=UpdateCallback(
-                    user_id=from_id,
-                    peer_id=peer_id,
-                    payload=payload,
-                    message_id=message_id
+                    user_id=data['user_id'],
+                    peer_id=data['peer_id'],
+                    payload=data['payload'],
+                    message_id=data.get("conversation_message_id")
                 ))
 
     async def send_message(self, **params) -> None:
@@ -126,10 +119,9 @@ class VkApiAccessor(BaseAccessor):
             params=params
         )
 
-        if self.session is not None:
-            async with self.session.get(url) as response:
-                data = await response.json()
-                self.logger.info(data)
+        async with self.session.get(url) as response:
+            data = await response.json()
+            self.logger.info(data)
 
     async def update_message(self, **params) -> None:
         params["random_id"] = random.randint(1, 2 ** 16)
@@ -139,21 +131,24 @@ class VkApiAccessor(BaseAccessor):
             method='messages.edit',
             params=params
         )
-        if self.session is not None:
-            async with self.session.get(url) as response:
-                data = await response.json()
-                self.logger.info(data)
+
+        async with self.session.get(url) as response:
+            data = await response.json()
+            self.logger.info(data)
 
     @staticmethod
     async def build_keyboard(
             buttons: List[List[dict]],
-            **params) -> dict:
-        keyboard = params
+            params: Optional[dict] = None) -> dict:
+        if params:
+            keyboard = params
+        else:
+            keyboard = {}
         keyboard["buttons"] = buttons
         return keyboard
 
     @staticmethod
-    async def make_button(color: str = None, **params) -> dict:
+    async def make_button(params: dict, color: Optional[str] = None) -> dict:
         button = {
             "action": params
         }

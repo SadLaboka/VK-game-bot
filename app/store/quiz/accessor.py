@@ -1,10 +1,7 @@
 from typing import Optional, List
 
-from aiohttp.web_exceptions import (
-    HTTPConflict,
-    HTTPUnprocessableEntity,
-    HTTPNotFound
-)
+from aiohttp.web_exceptions import HTTPUnprocessableEntity
+
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 

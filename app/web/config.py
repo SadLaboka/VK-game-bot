@@ -25,6 +25,13 @@ class BotConfig:
 
 
 @dataclass
+class DifficultiesConfig:
+    title: str
+    right_answers_to_win: int
+    wrong_answers_to_lose: int
+
+
+@dataclass
 class DatabaseConfig:
     host: str = "localhost"
     port: int = 5432
@@ -36,6 +43,7 @@ class DatabaseConfig:
 @dataclass
 class Config:
     admin: AdminConfig
+    difficulties: DifficultiesConfig
     session: SessionConfig = None
     bot: BotConfig = None
     database: DatabaseConfig = None
@@ -50,6 +58,13 @@ def setup_config(app: "Application", config_path: str):
         admin=AdminConfig(
             email=raw_config["admin"]["email"],
             password=raw_config["admin"]["password"],
+        ),
+        difficulties=DifficultiesConfig(
+            title=raw_config["difficulties"]["title"],
+            right_answers_to_win=
+            raw_config["difficulties"]["right_answers_to_win"],
+            wrong_answers_to_lose=
+            raw_config["difficulties"]["wrong_answers_to_lose"]
         ),
         session=SessionConfig(key=raw_config["session"]["key"]),
         bot=BotConfig(

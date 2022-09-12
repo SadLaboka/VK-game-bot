@@ -14,3 +14,7 @@ database:
 bot:
   token: vk1.a.3KYnYiMO4qq7wcY_iWLybDwGPKf8fXEv-jb2bbRaZ4yQPK0TckM8bwAIp3jsOyx6wzKLm0ambVv-yAuaNKqAHaXCvJ3-P98TkN-78E00u4UsbNu9tu49LWbpwHMlhnG1fb-exZPZkZtXio37Yl8aIUD8_e0eHXFh9-tQImLVQwT4mIfjd3tAdsH3hAOzTvD4
   group_id: 215490947
+difficulties:
+  title: red
+  right_answers_to_win: 1
+  wrong_answers_to_lose: 1

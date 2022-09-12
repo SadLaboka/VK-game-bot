@@ -1,7 +1,7 @@
 """Add first migration
 
 Revision ID: eb59eef0af20
-Revises: 
+Revises:
 Create Date: 2022-08-29 15:22:33.150163
 
 """

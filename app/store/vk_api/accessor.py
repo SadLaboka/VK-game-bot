@@ -8,7 +8,7 @@ from aiohttp.client import ClientSession
 
 from app.base.base_accessor import BaseAccessor
 from app.store.vk_api.dataclasses import (
-    Update, UpdateMessage, UpdateCallback
+    Update, UpdateMessage, UpdateCallback, User
 )
 from app.store.vk_api.poller import Poller
 
@@ -22,28 +22,19 @@ class VkApiAccessor(BaseAccessor):
         self.session: Optional[ClientSession] = None
         self.key: Optional[str] = None
         self.server: Optional[str] = None
-        self.pollers: List[Poller] = []
+        self.poller: Optional[Poller] = None
         self.ts: Optional[int] = None
-        self.queue = asyncio.LifoQueue()
-
-    async def add_poller(self, poller: Poller):
-        self.pollers.append(poller)
-
-    async def remove_poller(self, poller: Poller):
-        index = self.pollers.index(poller)
-        self.pollers.pop(index)
 
     async def connect(self, app: "Application"):
         self.session = ClientSession(connector=TCPConnector(ssl=True))
 
         await self._get_long_poll_service()
-        await self.add_poller(Poller(self.app.store))
-        await self.pollers[0].start()
+        self.poller = Poller(self.app.store)
+        await self.poller.start()
 
     async def disconnect(self, app: "Application"):
-        if self.pollers:
-            for poller in self.pollers[::-1]:
-                await poller.stop()
+        if self.poller:
+            await self.poller.stop()
         if self.session:
             await self.session.close()
 
@@ -68,7 +59,7 @@ class VkApiAccessor(BaseAccessor):
             self.server = data['response']['server']
             self.ts = data['response']['ts']
 
-    async def poll(self) -> List[Optional[Update]]:
+    async def poll(self) -> List[Update]:
         url = self._build_query(self.server, '', {
             'act': 'a_check',
             'key': self.key,
@@ -81,11 +72,12 @@ class VkApiAccessor(BaseAccessor):
             self.app.logger.info(data)
             if self.ts <= data['ts']:
                 self.ts = data['ts']
-
-                for update in data['updates']:
-                    update = await self._create_update(update)
-                    if update:
-                        await self.queue.put(update)
+            updates = []
+            for update in data['updates']:
+                update = await self._create_update(update)
+                if update:
+                    updates.append(update)
+        return updates
 
     @staticmethod
     async def _create_update(update: dict) -> Optional[Update]:
@@ -97,7 +89,8 @@ class VkApiAccessor(BaseAccessor):
                     text=data['text'],
                     user_id=data['from_id'],
                     peer_id=data['peer_id'],
-                    action=data['action']
+                    action=data.get('action'),
+                    message_id=data.get("conversation_message_id")
                 ))
         elif update['type'] == 'message_event':
             data = update['object']
@@ -107,10 +100,39 @@ class VkApiAccessor(BaseAccessor):
                     user_id=data['user_id'],
                     peer_id=data['peer_id'],
                     payload=data['payload'],
-                    message_id=data.get("conversation_message_id")
+                    message_id=data.get("conversation_message_id"),
+                    event_id=data.get("event_id")
                 ))
 
-    async def send_message(self, **params) -> None:
+    async def get_user(self, vk_id: int) -> User:
+        url = self._build_query(
+            host='https://api.vk.com/method/',
+            method='users.get',
+            params={
+                "user_ids": vk_id,
+                "access_token": self.app.config.bot.token
+            }
+        )
+
+        async with self.session.get(url) as response:
+            data = await response.json()
+        return User(
+            first_name=data["response"][0]["first_name"],
+            last_name=data["response"][0]["last_name"]
+        )
+
+    async def send_message_event_answer(self, **params) -> None:
+        params["access_token"] = self.app.config.bot.token
+        url = self._build_query(
+            host='https://api.vk.com/method/',
+            method='messages.sendMessageEventAnswer',
+            params=params
+        )
+        async with self.session.get(url) as response:
+            data = await response.json()
+            self.logger.info(data)
+
+    async def send_message(self, **params) -> dict:
         params["random_id"] = random.randint(1, 2 ** 16)
         params["access_token"] = self.app.config.bot.token
         url = self._build_query(
@@ -122,6 +144,11 @@ class VkApiAccessor(BaseAccessor):
         async with self.session.get(url) as response:
             data = await response.json()
             self.logger.info(data)
+
+        async with self.session.get(url) as response:
+            data = await response.json()
+            self.logger.info(data)
+        return data
 
     async def update_message(self, **params) -> None:
         params["random_id"] = random.randint(1, 2 ** 16)

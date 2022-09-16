@@ -25,6 +25,13 @@ class BotConfig:
 
 
 @dataclass
+class DifficultiesConfig:
+    title: str
+    right_answers_to_win: int
+    wrong_answers_to_lose: int
+
+
+@dataclass
 class DatabaseConfig:
     host: str = "localhost"
     port: int = 5432
@@ -36,6 +43,9 @@ class DatabaseConfig:
 @dataclass
 class Config:
     admin: AdminConfig
+    difficulty1: DifficultiesConfig
+    difficulty2: DifficultiesConfig
+    difficulty3: DifficultiesConfig
     session: SessionConfig = None
     bot: BotConfig = None
     database: DatabaseConfig = None
@@ -50,6 +60,27 @@ def setup_config(app: "Application", config_path: str):
         admin=AdminConfig(
             email=raw_config["admin"]["email"],
             password=raw_config["admin"]["password"],
+        ),
+        difficulty1=DifficultiesConfig(
+            title=raw_config["difficulty1"]["title"],
+            right_answers_to_win=
+            raw_config["difficulty1"]["right_answers_to_win"],
+            wrong_answers_to_lose=
+            raw_config["difficulty1"]["wrong_answers_to_lose"]
+        ),
+        difficulty2=DifficultiesConfig(
+            title=raw_config["difficulty2"]["title"],
+            right_answers_to_win=
+            raw_config["difficulty2"]["right_answers_to_win"],
+            wrong_answers_to_lose=
+            raw_config["difficulty2"]["wrong_answers_to_lose"]
+        ),
+        difficulty3=DifficultiesConfig(
+            title=raw_config["difficulty3"]["title"],
+            right_answers_to_win=
+            raw_config["difficulty3"]["right_answers_to_win"],
+            wrong_answers_to_lose=
+            raw_config["difficulty3"]["wrong_answers_to_lose"]
         ),
         session=SessionConfig(key=raw_config["session"]["key"]),
         bot=BotConfig(

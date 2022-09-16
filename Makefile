@@ -11,9 +11,5 @@ test:
 docker:
 	docker-compose up --build -d
 
-docker-stop:
-	docker-compose stop
-	docker-compose rm
-
 coverage:
 	python -m pytest --cov=app --cov-report=xml

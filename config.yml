@@ -14,15 +14,3 @@ database:
 bot:
   token: vk1.a.3KYnYiMO4qq7wcY_iWLybDwGPKf8fXEv-jb2bbRaZ4yQPK0TckM8bwAIp3jsOyx6wzKLm0ambVv-yAuaNKqAHaXCvJ3-P98TkN-78E00u4UsbNu9tu49LWbpwHMlhnG1fb-exZPZkZtXio37Yl8aIUD8_e0eHXFh9-tQImLVQwT4mIfjd3tAdsH3hAOzTvD4
   group_id: 215490947
-difficulty1:
-  title: red
-  right_answers_to_win: 1
-  wrong_answers_to_lose: 1
-difficulty2:
-  title: yellow
-  right_answers_to_win: 2
-  wrong_answers_to_lose: 2
-difficulty3:
-  title: green
-  right_answers_to_win: 3
-  wrong_answers_to_lose: 3

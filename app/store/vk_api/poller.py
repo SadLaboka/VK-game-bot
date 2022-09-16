@@ -1,9 +1,8 @@
 import asyncio
 from asyncio import Task, Future
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional
 
 from app.store import Store
-from app.store.vk_api.dataclasses import Update, TimeoutTask
 
 
 class Poller:
@@ -11,10 +10,6 @@ class Poller:
         self.store = store
         self.is_running = False
         self.poll_task: Optional[Task] = None
-        self.queue: Optional[asyncio.Queue] = None
-        self.game_timeout_tasks: List[TimeoutTask] = []
-        self.tasks: list = []
-        self.workers = 8
 
     def _done_callback(self, future: Future):
         if future.exception():
@@ -22,23 +17,7 @@ class Poller:
                 'polling failed', exc_info=future.exception()
             )
 
-    async def process_update(self, updates: list[Update]):
-        for update in updates:
-            self.queue.put_nowait(update)
-        for i in range(self.workers):
-            task = asyncio.create_task(self.worker())
-            self.tasks.append(task)
-
-        await self.queue.join()
-
-        for task in self.tasks:
-            task.cancel()
-
-        await asyncio.gather(*self.tasks, return_exceptions=True)
-        self.tasks = []
-
     async def start(self):
-        self.queue = asyncio.Queue()
         task = asyncio.create_task(self.poll())
         task.add_done_callback(self._done_callback)
         self.is_running = True
@@ -52,17 +31,4 @@ class Poller:
 
     async def poll(self):
         while self.is_running:
-            updates = await self.store.vk_api.poll()
-            if updates:
-                await self.process_update(updates)
-
-    async def start_timeout_tasks(self):
-        while True:
-            for task in self.game_timeout_tasks:
-                pass
-
-    async def worker(self):
-        while True:
-            update = await self.queue.get()
-            await self.store.bots_manager.handle_updates(update)
-            self.queue.task_done()
+            await self.store.vk_api.poll()

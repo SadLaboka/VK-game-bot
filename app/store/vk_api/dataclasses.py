@@ -40,9 +40,3 @@ class Update:
     type: str
     object: Union[UpdateMessage, UpdateCallback]
 
-
-@dataclass
-class TimeoutTask:
-    session_id: int
-    peer_id: int
-    task: Task

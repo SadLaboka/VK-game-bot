@@ -19,19 +19,6 @@ class NotRegistered(Exception):
 
 
 class AdminAccessor(BaseAccessor):
-    async def connect(self, app: "Application"):
-        email = app.config.admin.email
-        password = app.config.admin.password
-        encrypted_pass = sha256(password.encode()).hexdigest()
-        admin = AdminModel(
-            email=email,
-            password=encrypted_pass
-        )
-        try:
-            async with self.app.database.session.begin() as conn:
-                conn.add(admin)
-        except IntegrityError:
-            pass
 
     async def get_by_email(self, email: str) -> Optional[Admin]:
         async with self.app.database.session.begin() as conn:

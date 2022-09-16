@@ -14,34 +14,6 @@ if TYPE_CHECKING:
 
 class GameAccessor(BaseAccessor):
 
-    async def connect(self, app: "Application"):
-        config = self.app.config
-        difficulty1 = DifficultyModel(
-            id=1,
-            title=config.difficulty1.title,
-            right_answers_to_win=config.difficulty1.right_answers_to_win,
-            wrong_answers_to_lose=config.difficulty1.wrong_answers_to_lose
-        )
-        difficulty2 = DifficultyModel(
-            id=2,
-            title=config.difficulty2.title,
-            right_answers_to_win=config.difficulty2.right_answers_to_win,
-            wrong_answers_to_lose=config.difficulty2.wrong_answers_to_lose
-        )
-        difficulty3 = DifficultyModel(
-            id=3,
-            title=config.difficulty3.title,
-            right_answers_to_win=config.difficulty3.right_answers_to_win,
-            wrong_answers_to_lose=config.difficulty3.wrong_answers_to_lose
-        )
-        try:
-            async with self.app.database.session.begin() as conn:
-                conn.add(difficulty1)
-                conn.add(difficulty2)
-                conn.add(difficulty3)
-        except IntegrityError:
-            pass
-
     async def create_session(self, chat_id: int, started_by: int) -> Session:
         new_session = SessionModel(
             chat_id=chat_id,

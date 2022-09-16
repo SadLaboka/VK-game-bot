@@ -31,20 +31,23 @@ class BotManager:
                 callback.user_id
             )
         elif command == CommandKind.FINISH:
+            messages = []
+            messages.append("=================FINISH=================")
+            messages.append("Игра завершена!")
+            messages.append("======================================")
+            message = "%0A %0A".join(messages)
             await self.app.store.vk_api.send_message(
                 peer_id=callback.peer_id,
-                message="Игра завершена!",
-            )
-            await self.app.store.vk_api.send_message(
-                peer_id=callback.peer_id,
-                message="=================FINISH================="
+                message=message
             )
             session = await self._get_current_session(callback.peer_id)
-            session.status = "Finished"
+            session.status = SessionStatusKind.FINISHED
             await self.app.store.game.update_session(session)
             await self.app.store.bots_manager.send_start_message(callback.peer_id)
         elif command == CommandKind.SHOW_INFO:
             session = await self._get_current_session(callback.peer_id)
+            if session.started_by != callback.user_id:
+                return
             messages = []
             if session.status == SessionStatusKind.PREPARED:
                 messages.append("=================INFO=================")
@@ -53,17 +56,18 @@ class BotManager:
                     get_players_statuses(session.id)
                 messages.append(f"Количество присоединившихся игроков: {len(players_statuses)}")
                 messages.append("======================================")
+                message = "%0A %0A".join(messages)
             elif session.status == SessionStatusKind.ACTIVE:
                 messages.append("=================INFO=================")
                 messages.append("Игра уже идет")
                 messages.append("======================================")
+                message = "%0A %0A".join(messages)
             else:
                 return
-            for message in messages:
-                await self.app.store.vk_api.send_message(
-                    peer_id=callback.peer_id,
-                    message=message
-                )
+            await self.app.store.vk_api.send_message(
+                peer_id=callback.peer_id,
+                message=message
+            )
 
     async def _message_handler(self, message: UpdateMessage):
         action = message.action
@@ -170,27 +174,23 @@ class BotManager:
             # await self._activate_session(peer_id)
 
     async def _send_game_start_message(self, peer_id: int):
-        await self.app.store.vk_api.send_message(
-            peer_id=peer_id,
-            message="=================START================="
-        )
-
-        message = 'Игра начинается! Чтобы присоединиться - нажми на кнопку!'
+        message = '=================START=================%0A %0AИгра ' \
+                  'начинается! Чтобы присоединиться - нажми на кнопку!'
         join_button = await self.app.store.vk_api.make_button(
             {"type": "callback",
-             "payload": {"command": "join"},
+             "payload": {"command": CommandKind.JOIN},
              "label": "Присоединиться"},
             color="positive",
         )
         info_button = await self.app.store.vk_api.make_button(
             {"type": "callback",
-             "payload": {"command": "show_info"},
+             "payload": {"command": CommandKind.SHOW_INFO},
              "label": "Показать информацию"},
             color="primary"
         )
         finish_button = await self.app.store.vk_api.make_button(
             {"type": "callback",
-             "payload": {"command": "finish"},
+             "payload": {"command": CommandKind.FINISH},
              "label": "Завершить игру"},
             color="negative",
         )
@@ -214,14 +214,12 @@ class BotManager:
             "длительность игры и время на ответ")
         messages.append("Для этого напишите в чат "
                         "/duration {Время} и /answer_time {Время}")
-        for message in messages:
-            await self.app.store.vk_api.send_message(
-                peer_id=peer_id,
-                message=message
-            )
-
-        message = "Вы можете завершить игру в " \
-                  "любой момент, нажав на кнопку снизу."
+        messages.append("Чтобы получить информацию о текущем состоянии игры,"
+                        " нажмите на кнопку снизу.")
+        messages.append(
+            "Вы можете завершить игру в любой момент, нажав на кнопку снизу.")
+        messages.append("======================================")
+        message = "%0A %0A".join(messages)
         buttons = [[info_button], [finish_button]]
         keyboard = await self.app.store.vk_api.build_keyboard(
             buttons=buttons
@@ -243,7 +241,7 @@ class BotManager:
         await asyncio.sleep(30)
         session = await self._get_current_session(peer_id)
         if session.status == SessionStatusKind.PREPARED:
-            session.status = "Active"
+            session.status = SessionStatusKind.ACTIVE
             await self.app.store.game.update_session(session)
             keyboard = await self.app.store.vk_api.build_keyboard([], {"inline": True})
             await self.app.store.vk_api.update_message(

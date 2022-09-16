@@ -41,7 +41,7 @@ class BotManager:
                 message=message
             )
             session = await self._get_current_session(callback.peer_id)
-            session.status = SessionStatusKind.FINISHED
+            session.status = "Finished"
             await self.app.store.game.update_session(session)
             await self.app.store.bots_manager.send_start_message(callback.peer_id)
         elif command == CommandKind.SHOW_INFO:
@@ -178,19 +178,19 @@ class BotManager:
                   'начинается! Чтобы присоединиться - нажми на кнопку!'
         join_button = await self.app.store.vk_api.make_button(
             {"type": "callback",
-             "payload": {"command": CommandKind.JOIN},
+             "payload": {"command": "join"},
              "label": "Присоединиться"},
             color="positive",
         )
         info_button = await self.app.store.vk_api.make_button(
             {"type": "callback",
-             "payload": {"command": CommandKind.SHOW_INFO},
+             "payload": {"command": "show_info"},
              "label": "Показать информацию"},
             color="primary"
         )
         finish_button = await self.app.store.vk_api.make_button(
             {"type": "callback",
-             "payload": {"command": CommandKind.FINISH},
+             "payload": {"command": "finish"},
              "label": "Завершить игру"},
             color="negative",
         )
@@ -241,7 +241,7 @@ class BotManager:
         await asyncio.sleep(30)
         session = await self._get_current_session(peer_id)
         if session.status == SessionStatusKind.PREPARED:
-            session.status = SessionStatusKind.ACTIVE
+            session.status = "Active"
             await self.app.store.game.update_session(session)
             keyboard = await self.app.store.vk_api.build_keyboard([], {"inline": True})
             await self.app.store.vk_api.update_message(

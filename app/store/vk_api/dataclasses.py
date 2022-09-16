@@ -1,3 +1,4 @@
+from asyncio import Task
 from dataclasses import dataclass
 from typing import Optional, Union
 
@@ -38,3 +39,10 @@ class UpdateCallback(UpdateObject):
 class Update:
     type: str
     object: Union[UpdateMessage, UpdateCallback]
+
+
+@dataclass
+class TimeoutTask:
+    session_id: int
+    peer_id: int
+    task: Task

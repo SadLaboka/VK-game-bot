@@ -3,7 +3,7 @@ from asyncio import Task, Future
 from typing import Optional, List, TYPE_CHECKING
 
 from app.store import Store
-from app.store.vk_api.dataclasses import Update
+from app.store.vk_api.dataclasses import Update, TimeoutTask
 
 
 class Poller:
@@ -11,8 +11,10 @@ class Poller:
         self.store = store
         self.is_running = False
         self.poll_task: Optional[Task] = None
-        self.primary_queue: Optional[asyncio.Queue] = None
-        self.tasks: Optional[list] = []
+        self.queue: Optional[asyncio.Queue] = None
+        self.game_timeout_tasks: List[TimeoutTask] = []
+        self.tasks: list = []
+        self.workers = 8
 
     def _done_callback(self, future: Future):
         if future.exception():
@@ -22,16 +24,21 @@ class Poller:
 
     async def process_update(self, updates: list[Update]):
         for update in updates:
-            self.primary_queue.put_nowait(update)
-        main_task = asyncio.create_task(self.worker())
+            self.queue.put_nowait(update)
+        for i in range(self.workers):
+            task = asyncio.create_task(self.worker())
+            self.tasks.append(task)
 
-        await self.primary_queue.join()
-        main_task.cancel()
+        await self.queue.join()
+
+        for task in self.tasks:
+            task.cancel()
 
         await asyncio.gather(*self.tasks, return_exceptions=True)
+        self.tasks = []
 
     async def start(self):
-        self.primary_queue = asyncio.Queue()
+        self.queue = asyncio.Queue()
         task = asyncio.create_task(self.poll())
         task.add_done_callback(self._done_callback)
         self.is_running = True
@@ -49,8 +56,13 @@ class Poller:
             if updates:
                 await self.process_update(updates)
 
+    async def start_timeout_tasks(self):
+        while True:
+            for task in self.game_timeout_tasks:
+                pass
+
     async def worker(self):
         while True:
-            update = await self.primary_queue.get()
+            update = await self.queue.get()
             await self.store.bots_manager.handle_updates(update)
-            self.primary_queue.task_done()
+            self.queue.task_done()

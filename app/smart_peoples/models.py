@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
-from sqlalchemy import Column, Integer, DateTime, func, ForeignKey, String
+from sqlalchemy import Column, Integer, DateTime, func, ForeignKey, String, Boolean
 from sqlalchemy.orm import relationship
 
 from app.store.database.sqlalchemy_base import db
@@ -17,9 +17,11 @@ class Session:
     response_time: int
     session_duration: int
     started_at: datetime
+    move_number: int
     start_message_id: Optional[int] = None
     finished_at: Optional[datetime] = None
     winner_id: Optional[int] = None
+    answering_player_vk_id: Optional[int] = None
 
 
 @dataclass
@@ -30,6 +32,8 @@ class PlayerStatus:
     difficulty_id: int
     right_answers: int
     wrong_answers: int
+    is_won: bool
+    is_lost: bool
 
 
 @dataclass
@@ -41,6 +45,11 @@ class Player:
     games_count: int
     wins_count: int
     loses_count: int
+
+
+@dataclass
+class PlayerStatusNested(PlayerStatus):
+    player: Player
 
 
 @dataclass
@@ -58,6 +67,7 @@ class SessionModel(db):
     chat_id = Column(Integer, nullable=False)
     started_by_vk_id = Column(Integer, nullable=False)
     status = Column(String, nullable=False, default="Prepared")
+    move_number = Column(Integer, nullable=False, default=0)
     winner_id = Column(
         Integer,
         ForeignKey("players.id", ondelete="SET NULL"),
@@ -66,6 +76,7 @@ class SessionModel(db):
     session_duration = Column(Integer, nullable=False, default=1800)
     started_at = Column(DateTime(timezone=False), server_default=func.now())
     start_message_id = Column(Integer, unique=True)
+    answering_player_vk_id = Column(Integer, nullable=True)
     finished_at = Column(DateTime(timezone=False))
     winner = relationship(
         "PlayerModel",
@@ -82,10 +93,12 @@ class SessionModel(db):
             chat_id=self.chat_id,
             started_by=self.started_by_vk_id,
             status=self.status,
+            move_number=self.move_number,
             response_time=self.response_time,
             session_duration=self.session_duration,
             start_message_id=self.start_message_id,
             started_at=self.started_at,
+            answering_player_vk_id=self.answering_player_vk_id,
             finished_at=self.finished_at,
             winner_id=self.winner_id
         )
@@ -105,8 +118,12 @@ class PlayerModel(db):
         "SessionModel",
         back_populates="winner"
     )
+    statuses = relationship(
+        "PlayersStatusModel",
+        back_populates="player"
+    )
 
-    def to_dc(self):
+    def to_dc(self) -> Player:
         return Player(
             id=self.id,
             vk_id=self.vk_id ,
@@ -137,23 +154,44 @@ class PlayersStatusModel(db):
     )
     right_answers = Column(Integer, nullable=False, default=0)
     wrong_answers = Column(Integer, nullable=False, default=0)
+    is_won = Column(Boolean, nullable=False, default=False)
+    is_lost = Column(Boolean, nullable=False, default=False)
     session = relationship(
         "SessionModel",
         back_populates="players"
+    )
+    player = relationship(
+        "PlayerModel",
+        back_populates="statuses"
     )
     difficulty = relationship(
         "DifficultyModel",
         back_populates="current_players"
     )
 
-    def to_dc(self):
+    def to_dc(self) -> PlayerStatus:
         return PlayerStatus(
             id=self.id,
             player_id=self.player_id,
             session_id=self.session_id,
             difficulty_id=self.difficulty_id,
             right_answers=self.right_answers,
-            wrong_answers=self.wrong_answers
+            wrong_answers=self.wrong_answers,
+            is_lost=self.is_lost,
+            is_won=self.is_won
+        )
+
+    def to_nested_dc(self) -> PlayerStatusNested:
+        return PlayerStatusNested(
+            id=self.id,
+            player_id=self.player_id,
+            session_id=self.session_id,
+            difficulty_id=self.difficulty_id,
+            right_answers=self.right_answers,
+            wrong_answers=self.wrong_answers,
+            is_won=self.is_won,
+            is_lost=self.is_lost,
+            player=self.player.to_dc()
         )
 
 
@@ -170,7 +208,7 @@ class DifficultyModel(db):
     )
     questions = relationship("QuestionModel", back_populates="difficulty")
 
-    def to_dc(self):
+    def to_dc(self) -> Difficulty:
         return Difficulty(
             id=self.id,
             title=self.title,

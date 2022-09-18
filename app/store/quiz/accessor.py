@@ -2,7 +2,7 @@ from typing import Optional, List
 
 from aiohttp.web_exceptions import HTTPUnprocessableEntity
 
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
@@ -85,15 +85,32 @@ class QuizAccessor(BaseAccessor):
         return question.to_dc()
 
     async def list_questions(
-            self, theme_id: Optional[int] = None
+            self,
+            theme_id: Optional[int] = None,
+            difficulty_id: Optional[int] = None,
+            answered_questions: Optional[List[int]] = None
     ) -> List[Question]:
         query = select(QuestionModel)
-        if theme_id:
+        if theme_id and difficulty_id:
+            theme_id = int(theme_id)
+            difficulty_id = int(difficulty_id)
+            query = query.where(and_(
+                QuestionModel.theme_id == theme_id,
+                QuestionModel.difficulty_id == difficulty_id
+            ))
+        elif theme_id:
             theme_id = int(theme_id)
             query = query.where(QuestionModel.theme_id == theme_id)
+        elif difficulty_id:
+            difficulty_id = int(difficulty_id)
+            query = query.where(QuestionModel.difficulty_id == difficulty_id)
+
         async with self.app.database.session.begin() as conn:
             questions = await conn.scalars(
                 query.options(joinedload(QuestionModel.answers))
             )
-
-        return [q.to_dc() for q in questions.unique()]
+        if answered_questions:
+            result = [q.to_dc() for q in questions.unique() if q.id not in answered_questions]
+        else:
+            result = [q.to_dc() for q in questions.unique()]
+        return result

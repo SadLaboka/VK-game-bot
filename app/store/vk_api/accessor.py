@@ -144,10 +144,6 @@ class VkApiAccessor(BaseAccessor):
         async with self.session.get(url) as response:
             data = await response.json()
             self.logger.info(data)
-
-        async with self.session.get(url) as response:
-            data = await response.json()
-            self.logger.info(data)
         return data
 
     async def update_message(self, **params) -> None:

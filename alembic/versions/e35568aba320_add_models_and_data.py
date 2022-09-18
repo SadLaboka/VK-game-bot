@@ -1,8 +1,8 @@
-"""Add models
+"""Add models and data
 
-Revision ID: 58c18fea6f96
+Revision ID: e35568aba320
 Revises: 
-Create Date: 2022-09-15 16:41:20.710505
+Create Date: 2022-09-18 16:51:06.649175
 
 """
 from hashlib import sha256
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '58c18fea6f96'
+revision = 'e35568aba320'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -51,7 +51,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_players_id'), 'players', ['id'], unique=False)
     themes = op.create_table('themes',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('title', sa.String(length=60), nullable=False),
+    sa.Column('title', sa.String(length=100), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('title')
     )
@@ -72,11 +72,13 @@ def upgrade() -> None:
     sa.Column('chat_id', sa.Integer(), nullable=False),
     sa.Column('started_by_vk_id', sa.Integer(), nullable=False),
     sa.Column('status', sa.String(), nullable=False),
+    sa.Column('move_number', sa.Integer(), nullable=False),
     sa.Column('winner_id', sa.Integer(), nullable=True),
     sa.Column('response_time', sa.Integer(), nullable=False),
     sa.Column('session_duration', sa.Integer(), nullable=False),
     sa.Column('started_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.Column('start_message_id', sa.Integer(), nullable=True),
+    sa.Column('answering_player_vk_id', sa.Integer(), nullable=True),
     sa.Column('finished_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['winner_id'], ['players.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id'),
@@ -99,6 +101,8 @@ def upgrade() -> None:
     sa.Column('difficulty_id', sa.Integer(), nullable=False),
     sa.Column('right_answers', sa.Integer(), nullable=False),
     sa.Column('wrong_answers', sa.Integer(), nullable=False),
+    sa.Column('is_won', sa.Boolean(), nullable=False),
+    sa.Column('is_lost', sa.Boolean(), nullable=False),
     sa.ForeignKeyConstraint(['difficulty_id'], ['difficulties.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['player_id'], ['players.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['session_id'], ['sessions.id'], ondelete='CASCADE'),
@@ -125,19 +129,19 @@ def upgrade() -> None:
                    [
                        {
                            "id": 1,
-                           "title": "red",
+                           "title": "Красный",
                            "right_answers_to_win": 1,
                            "wrong_answers_to_lose": 1
                        },
                        {
                            "id": 2,
-                           "title": "yellow",
+                           "title": "Желтый",
                            "right_answers_to_win": 2,
                            "wrong_answers_to_lose": 2
                        },
                        {
                            "id": 3,
-                           "title": "green",
+                           "title": "Зеленый",
                            "right_answers_to_win": 3,
                            "wrong_answers_to_lose": 3
                        }

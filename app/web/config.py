@@ -35,11 +35,18 @@ class DatabaseConfig:
 
 
 @dataclass
+class RedisConfig:
+    host: str
+    port: int
+
+
+@dataclass
 class Config:
     session: SessionConfig = None
     bot: BotConfig = None
     database: DatabaseConfig = None
     database_url: str = None
+    redis: RedisConfig = None
 
 
 def setup_config(app: "Application", config_path: str):
@@ -59,6 +66,10 @@ def setup_config(app: "Application", config_path: str):
             password=raw_config["database"]["password"],
             database=raw_config["database"]["database"]
         ),
+        redis=RedisConfig(
+            host=raw_config["redis"]["host"],
+            port=raw_config["redis"]["port"]
+        )
     )
     db_conf = app.config.database
     app.config.database_url = f"postgresql+asyncpg://" \

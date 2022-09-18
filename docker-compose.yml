@@ -17,3 +17,16 @@ services:
       interval: 5s
       timeout: 20s
       retries: 100
+
+  redis_db:
+    container_name: redis_db
+    image: redis:6.2.6-alpine
+    expose:
+      - 6379
+    ports:
+      - "9000:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 20s
+      retries: 100

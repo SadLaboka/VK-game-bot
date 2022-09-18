@@ -35,7 +35,7 @@ class ThemeModel(db):
     __tablename__ = "themes"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(60), nullable=False, unique=True)
+    title = Column(String(100), nullable=False, unique=True)
     questions = relationship(
         "QuestionModel",
         back_populates='themes',
@@ -54,7 +54,7 @@ class QuestionModel(db):
     __tablename__ = "questions"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(60), nullable=False, unique=True)
+    title = Column(String(100), nullable=False, unique=True)
     difficulty_id = Column(
         Integer,
         ForeignKey("difficulties.id", ondelete="CASCADE"),

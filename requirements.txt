@@ -40,3 +40,5 @@ SQLAlchemy==1.4.40
 tomli==2.0.1
 webargs==5.5.3
 yarl==1.8.1
+aioredis=2.0.1
+hiredis=2.0.0

@@ -55,6 +55,21 @@ class GameAccessor(BaseAccessor):
                 is_lost=status.is_lost
             ))
 
+    async def get_sessions_by_page(
+            self, page: Optional[Union[str, int, None]] = None
+    ) -> List[Session]:
+        if page:
+            page = int(page)
+        else:
+            page = 1
+        limit = 10
+        offset = (page - 1) * limit
+        async with self.app.database.session.begin() as conn:
+            sessions = await conn.scalars(
+                select(SessionModel).offset(offset).limit(limit)
+            )
+        return [s.to_dc() for s in sessions]
+
     async def update_session(self, session: Session) -> None:
         async with self.app.database.session.begin() as conn:
             await conn.execute(update(SessionModel).where(

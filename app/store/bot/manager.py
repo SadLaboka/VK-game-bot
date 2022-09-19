@@ -505,6 +505,23 @@ class BotManager:
                         f"@id{session.answering_player_vk_id}"
                         f" {player.first_name} {player.last_name} "
                         f"закончились подходящие вопросы!")
+            updated_statuses = await self.app.store.game \
+                .get_players_statuses_by_session_id(session.id)
+            updated_statuses.sort(
+                key=lambda status_: status_.right_answers, reverse=True)
+            text.append("Оставшиеся игроки:")
+            lost_players = []
+            info_lst = await self._build_info_list(updated_statuses)
+            text.extend(info_lst)
+            for status in updated_statuses:
+                if status.is_lost:
+                    lost_players.append(status)
+            if lost_players:
+                text.append(f"Количество проигравших игроков:"
+                            f" {len(lost_players)}")
+                text.append("Проигравшие игроки:")
+                info_lst_lost = await self._build_info_list(lost_players)
+                text.extend(info_lst_lost)
             message = await self._build_messages_block(text, "FINISH")
             await self.app.store.vk_api.send_message(
                 peer_id=session.chat_id,

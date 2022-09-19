@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  app:
+    container_name: aiohttp_project
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - docker_network
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres_test:
+        condition: service_healthy
+      redis_db:
+        condition: service_healthy
+
   postgres_test:
     container_name: postgres_db
     image: postgres:latest
@@ -12,6 +27,8 @@ services:
       - 5432
     ports:
       - "5432:5432"
+    networks:
+      - docker_network
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U kts" ]
       interval: 5s
@@ -25,8 +42,13 @@ services:
       - 6379
     ports:
       - "9000:6379"
+    networks:
+      - docker_network
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 20s
       retries: 100
+
+networks:
+  docker_network:

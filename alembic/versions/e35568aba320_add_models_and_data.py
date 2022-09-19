@@ -130,7 +130,7 @@ def upgrade() -> None:
                        {
                            "id": 1,
                            "title": "Красный",
-                           "right_answers_to_win": 1,
+                           "right_answers_to_win": 2,
                            "wrong_answers_to_lose": 1
                        },
                        {
@@ -142,7 +142,7 @@ def upgrade() -> None:
                        {
                            "id": 3,
                            "title": "Зеленый",
-                           "right_answers_to_win": 3,
+                           "right_answers_to_win": 2,
                            "wrong_answers_to_lose": 3
                        }
                    ]

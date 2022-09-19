@@ -197,6 +197,7 @@ class BotManager:
                     for player_status in statuses:
                         if player_status.id != status.id:
                             player_status.player.loses_count += 1
+                            player_status.is_lost = True
                             await self.app.store.game.update_player(
                                 player_status.player
                             )
@@ -209,19 +210,14 @@ class BotManager:
                         .get_players_statuses_by_session_id(session.id)
                     updated_statuses.sort(
                         key=lambda status_: status_.right_answers, reverse=True)
-                    text.append("Оставшиеся игроки:")
+                    text.append("Проигравшие игроки:")
                     lost_players = []
-                    info_lst = await self._build_info_list(updated_statuses)
-                    text.extend(info_lst)
-                    for status in updated_statuses:
-                        if status.is_lost:
-                            lost_players.append(status)
+                    for player_status in updated_statuses:
+                        if not player_status.is_won:
+                            lost_players.append(player_status)
                     if lost_players:
-                        text.append(f"Количество проигравших игроков:"
-                                    f" {len(lost_players)}")
-                        text.append("Проигравшие игроки:")
-                        info_lst_lost = await self._build_info_list(lost_players)
-                        text.extend(info_lst_lost)
+                        info_lst = await self._build_info_list(lost_players)
+                        text.extend(info_lst)
                     message = await self._build_messages_block(text, "FINISH")
                     await self.app.store.vk_api.send_message(
                         peer_id=callback.peer_id,
@@ -259,19 +255,14 @@ class BotManager:
                         .get_players_statuses_by_session_id(session.id)
                     updated_statuses.sort(
                         key=lambda status_: status_.right_answers, reverse=True)
-                    text.append("Оставшиеся игроки:")
+                    text.append("Проигравшие игроки:")
                     lost_players = []
-                    info_lst = await self._build_info_list(updated_statuses)
-                    text.extend(info_lst)
-                    for status in updated_statuses:
-                        if status.is_lost:
-                            lost_players.append(status)
+                    for player_status in updated_statuses:
+                        if not player_status.is_won:
+                            lost_players.append(player_status)
                     if lost_players:
-                        text.append(f"Количество проигравших игроков:"
-                                    f" {len(lost_players)}")
-                        text.append("Проигравшие игроки:")
-                        info_lst_lost = await self._build_info_list(lost_players)
-                        text.extend(info_lst_lost)
+                        info_lst = await self._build_info_list(lost_players)
+                        text.extend(info_lst)
                     message = await self._build_messages_block(text, "FINISH")
                     await self.app.store.vk_api.send_message(
                         peer_id=callback.peer_id,

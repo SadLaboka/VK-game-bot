@@ -10,6 +10,7 @@ test:
 
 docker:
 	docker-compose up --build -d
+	docker-compose exec app python -m alembic upgrade head
 
 docker-stop:
 	docker-compose stop

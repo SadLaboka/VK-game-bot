@@ -3,9 +3,9 @@ import datetime
 import json
 import random
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, List
 
-from app.smart_peoples.models import Session
+from app.smart_peoples.models import Session, PlayerStatusNested
 from app.store.vk_api.dataclasses import UpdateMessage, Update, UpdateCallback
 from app.store.vk_api.enums import CommandKind, SessionStatusKind
 
@@ -33,11 +33,32 @@ class BotManager:
                 callback.user_id
             )
         elif command == CommandKind.FINISH:
-            messages = []
-            messages.append("=================FINISH=================")
-            messages.append(f"Игра завершена игроком @id{callback.user_id}!")
-            messages.append("======================================")
-            message = "%0A %0A".join(messages)
+            session = await self._get_current_session(callback.peer_id)
+            text = []
+            text.append(f"Игра завершена игроком @id{callback.user_id}!")
+            if session.status == SessionStatusKind.ACTIVE:
+                count_current_players = await self.app.store.game\
+                    .get_responder_queue_length(session.id)
+                statuses = await self.app.store.game\
+                    .get_players_statuses_by_session_id(session.id)
+                statuses.sort(
+                    key=lambda status_: status_.right_answers, reverse=True)
+                text.append(f"Количество оставшихся игроков:"
+                            f" {count_current_players}")
+                text.append("Оставшиеся игроки:")
+                lost_players = []
+                info_lst = await self._build_info_list(statuses)
+                text.extend(info_lst)
+                for status in statuses:
+                    if status.is_lost:
+                        lost_players.append(status)
+                if lost_players:
+                    text.append(f"Количество проигравших игроков:"
+                                f" {len(lost_players)}")
+                    text.append("Проигравшие игроки:")
+                    info_lst_lost = await self._build_info_list(lost_players)
+                    text.extend(info_lst_lost)
+            message = await self._build_messages_block(text, "FINISH")
             await self.app.store.vk_api.send_message(
                 peer_id=callback.peer_id,
                 message=message
@@ -49,51 +70,45 @@ class BotManager:
             session = await self._get_current_session(callback.peer_id)
             if session.started_by != callback.user_id:
                 return
-            messages = []
+            text = []
             if session.status == SessionStatusKind.PREPARED:
-                messages.append("=================INFO=================")
-                messages.append("Игра на стадии подготовки")
+                text.append("Игра на стадии подготовки")
                 players_statuses = await self.app.store.game. \
                     get_players_statuses_by_session_id(session.id)
-                messages.append(f"Количество присоединившихся игроков: "
-                                f"{len(players_statuses)}")
+                text.append(f"Количество присоединившихся игроков: "
+                            f"{len(players_statuses)}")
                 if players_statuses:
-                    messages.append("Игроки:")
+                    text.append("Игроки:")
                     for status in players_statuses:
-                        messages.append(f" -> @id{status.player.vk_id} {status.player.first_name}"
-                                        f" {status.player.last_name}")
-                messages.append("======================================")
-                message = "%0A %0A".join(messages)
+                        text.append(f" -> @id{status.player.vk_id}"
+                                    f" {status.player.first_name}"
+                                    f" {status.player.last_name}"
+                                    f"%0A-----Уровень сложности: "
+                                    f"{status.difficulty.title}")
+                message = await self._build_messages_block(text, "=INFO=")
             elif session.status == SessionStatusKind.ACTIVE:
-                messages.append("=================INFO=================")
-                messages.append("Игра уже идет!")
+                text.append("Игра уже идет!")
                 count_current_players = await self.app.store.game \
                     .get_responder_queue_length(session.id)
                 players_statuses = await self.app.store.game. \
                     get_players_statuses_by_session_id(session.id)
-                messages.append(f"Количество оставшихся игроков: {count_current_players}")
-                messages.append("Активные игроки:")
+                text.append(f"Количество оставшихся игроков:"
+                            f" {count_current_players}")
+                text.append("Активные игроки:")
                 lost_players = []
+                info_lst = await self._build_info_list(players_statuses)
+                text.extend(info_lst)
                 for status in players_statuses:
-                    if not status.is_lost:
-                        messages.append(
-                            f" -> @id{status.player.vk_id} "
-                            f"{status.player.first_name}"
-                            f" {status.player.last_name}. "
-                            f"Правильных ответов: {status.right_answers} "
-                            f"Неправильных ответов: {status.wrong_answers}")
-                    else:
+                    if status.is_lost:
                         lost_players.append(status)
                 if lost_players:
-                    messages.append(f"Количество проигравших игроков: {len(lost_players)}")
-                    for status in lost_players:
-                        messages.append(
-                            f" -> @id{status.player.vk_id} "
-                            f"{status.player.first_name}"
-                            f" {status.player.last_name}.")
+                    text.append(f"Количество проигравших игроков:"
+                                f" {len(lost_players)}")
+                    text.append("Проигравшие игроки:")
+                    info_lst_lost = await self._build_info_list(lost_players)
+                    text.extend(info_lst_lost)
 
-                messages.append("======================================")
-                message = "%0A %0A".join(messages)
+                message = await self._build_messages_block(text, "=INFO=")
             else:
                 return
             await self.app.store.vk_api.send_message(
@@ -102,7 +117,8 @@ class BotManager:
             )
         elif command == CommandKind.ANSWER:
             session = await self._get_current_session(callback.peer_id)
-            if session.move_number != callback.payload.get("move_number"):
+            if session is None or session \
+                    .move_number != callback.payload.get("move_number"):
                 await self.app.store.vk_api.send_message_event_answer(
                     event_id=callback.event_id,
                     user_id=callback.user_id,
@@ -127,7 +143,8 @@ class BotManager:
                 is_correct = callback.payload.get("is_correct")
                 answer_title = callback.payload.get("answer_title")
                 question_title = callback.payload.get("question_title")
-                keyboard = await self.app.store.vk_api.build_keyboard([], {"inline": True})
+                keyboard = await self.app.store.vk_api.build_keyboard(
+                    [], {"inline": True})
                 await self.app.store.vk_api.update_message(
                     peer_id=callback.peer_id,
                     conversation_message_id=callback.message_id,
@@ -140,32 +157,34 @@ class BotManager:
                     player.id, session.id)
                 difficulty = await self.app.store.game.get_difficulty_by_id(
                     status.difficulty_id)
-                messages = []
-                messages.append(f"Игрок выбрал ответ \"{answer_title}\"")
+                text = []
+                text.append(f"Игрок выбрал ответ \"{answer_title}\"")
                 if is_correct:
-                    messages.append("Это правильный ответ!")
+                    text.append("Это правильный ответ!")
                     status.right_answers += 1
                     if status.right_answers == difficulty.right_answers_to_win:
                         status.is_won = True
-                        messages.append(f"Игрок @id{player.vk_id} "
-                                        f"{player.first_name}"
-                                        f" {player.last_name}"
-                                        f" одерживает победу!")
+                        text.append(f"Игрок @id{player.vk_id} "
+                                    f"{player.first_name}"
+                                    f" {player.last_name}"
+                                    f" одерживает победу!")
                         await self._finish_the_game(
                             callback.peer_id, "Finished", player.id)
                 else:
-                    messages.append("Это неправильный ответ!")
+                    text.append("Это неправильный ответ!")
                     status.wrong_answers += 1
-                    if status.wrong_answers == difficulty.wrong_answers_to_lose:
+                    if status.wrong_answers == difficulty \
+                            .wrong_answers_to_lose:
                         status.is_lost = True
-                        messages.append(f"К сожалению, игрок "
-                                        f"@id{player.vk_id} "
-                                        f"{player.first_name}"
-                                        f" {player.last_name}"
-                                        f" выбывает!")
-                        await self.app.store.game.remove_player_from_queue(session.id)
+                        text.append(f"К сожалению, игрок "
+                                    f"@id{player.vk_id} "
+                                    f"{player.first_name}"
+                                    f" {player.last_name}"
+                                    f" выбывает!")
+                        await self.app.store.game.remove_player_from_queue(
+                            session.id)
                 await self.app.store.game.update_player_status(status)
-                message = "%0A %0A".join(messages)
+                message = "%0A %0A".join(text)
                 await self.app.store.vk_api.send_message(
                     peer_id=callback.peer_id,
                     message=message
@@ -173,19 +192,6 @@ class BotManager:
                 responders_queue_length = await self.app.store.game \
                     .get_responder_queue_length(session.id)
                 if status.is_won:
-                    messages = []
-                    messages.append("=================FINISH=================")
-                    messages.append(f"Игра завершена победой игрока "
-                                    f"@id{callback.user_id}!")
-                    messages.append("======================================")
-                    message = "%0A %0A".join(messages)
-                    await self.app.store.vk_api.send_message(
-                        peer_id=callback.peer_id,
-                        message=message
-                    )
-                    await self.send_start_message(callback.peer_id)
-                    player.wins_count += 1
-                    await self.app.store.game.update_player(player)
                     statuses = await self.app.store.game \
                         .get_players_statuses_by_session_id(session.id)
                     for player_status in statuses:
@@ -196,6 +202,34 @@ class BotManager:
                             )
                             await self.app.store.game.update_player_status(
                                 player_status)
+                    text = []
+                    text.append(f"Игра завершена победой игрока "
+                                f"@id{callback.user_id}!")
+                    updated_statuses = await self.app.store.game \
+                        .get_players_statuses_by_session_id(session.id)
+                    updated_statuses.sort(
+                        key=lambda status_: status_.right_answers, reverse=True)
+                    text.append("Оставшиеся игроки:")
+                    lost_players = []
+                    info_lst = await self._build_info_list(updated_statuses)
+                    text.extend(info_lst)
+                    for status in updated_statuses:
+                        if status.is_lost:
+                            lost_players.append(status)
+                    if lost_players:
+                        text.append(f"Количество проигравших игроков:"
+                                    f" {len(lost_players)}")
+                        text.append("Проигравшие игроки:")
+                        info_lst_lost = await self._build_info_list(lost_players)
+                        text.extend(info_lst_lost)
+                    message = await self._build_messages_block(text, "FINISH")
+                    await self.app.store.vk_api.send_message(
+                        peer_id=callback.peer_id,
+                        message=message
+                    )
+                    await self.send_start_message(callback.peer_id)
+                    player.wins_count += 1
+                    await self.app.store.game.update_player(player)
                 elif responders_queue_length <= 1:
                     winner_vk_id = await self.app.store.game \
                         .get_next_responder(session.id)
@@ -207,20 +241,6 @@ class BotManager:
                     winner.wins_count += 1
                     await self.app.store.game.update_player_status(status)
                     await self.app.store.game.update_player(winner)
-                    messages = []
-                    messages.append("=================FINISH=================")
-                    messages.append("Остался только 1 игрок!")
-                    messages.append(f"Игра завершена победой игрока "
-                                    f"@id{winner.vk_id}!")
-                    messages.append("======================================")
-                    message = "%0A %0A".join(messages)
-                    await self.app.store.vk_api.send_message(
-                        peer_id=callback.peer_id,
-                        message=message
-                    )
-                    await self._finish_the_game(
-                        callback.peer_id, "Finished", winner.id)
-                    await self.send_start_message(callback.peer_id)
                     statuses = await self.app.store.game \
                         .get_players_statuses_by_session_id(session.id)
                     for player_status in statuses:
@@ -231,12 +251,41 @@ class BotManager:
                             )
                             await self.app.store.game.update_player_status(
                                 player_status)
+                    text = []
+                    text.append("Остался только 1 игрок!")
+                    text.append(f"Игра завершена победой игрока "
+                                f"@id{winner.vk_id}!")
+                    updated_statuses = await self.app.store.game \
+                        .get_players_statuses_by_session_id(session.id)
+                    updated_statuses.sort(
+                        key=lambda status_: status_.right_answers, reverse=True)
+                    text.append("Оставшиеся игроки:")
+                    lost_players = []
+                    info_lst = await self._build_info_list(updated_statuses)
+                    text.extend(info_lst)
+                    for status in updated_statuses:
+                        if status.is_lost:
+                            lost_players.append(status)
+                    if lost_players:
+                        text.append(f"Количество проигравших игроков:"
+                                    f" {len(lost_players)}")
+                        text.append("Проигравшие игроки:")
+                        info_lst_lost = await self._build_info_list(lost_players)
+                        text.extend(info_lst_lost)
+                    message = await self._build_messages_block(text, "FINISH")
+                    await self.app.store.vk_api.send_message(
+                        peer_id=callback.peer_id,
+                        message=message
+                    )
+                    await self._finish_the_game(
+                        callback.peer_id, "Finished", winner.id)
+                    await self.send_start_message(callback.peer_id)
                 else:
                     await self._next_question(session)
 
         elif command == CommandKind.CHOICE:
             session = await self._get_current_session(callback.peer_id)
-            if session.move_number != callback.payload.get("move_number"):
+            if session is None or session.move_number != callback.payload.get("move_number"):
                 await self.app.store.vk_api.send_message_event_answer(
                     event_id=callback.event_id,
                     user_id=callback.user_id,
@@ -260,7 +309,8 @@ class BotManager:
             else:
                 theme_id = callback.payload.get("theme_id")
                 theme_title = callback.payload.get("title")
-                keyboard = await self.app.store.vk_api.build_keyboard([], {"inline": True})
+                keyboard = await self.app.store.vk_api.build_keyboard(
+                    [], {"inline": True})
                 await self.app.store.vk_api.update_message(
                     peer_id=callback.peer_id,
                     conversation_message_id=callback.message_id,
@@ -269,20 +319,53 @@ class BotManager:
                 )
                 await self._ask_a_question(session, theme_id)
 
+    async def _build_info_list(self, statuses: List[PlayerStatusNested]) -> List[str]:
+        text_lst = []
+        for status in statuses:
+            text_lst.append(
+                f" -> @id{status.player.vk_id} "
+                f"{status.player.first_name}"
+                f" {status.player.last_name}"
+                f"%0A-----Уровень сложности:"
+                f" {status.difficulty.title}"
+                f"%0A-----Правильных ответов:"
+                f" {status.right_answers}"
+                f"/{status.difficulty.right_answers_to_win}"
+                f"%0A-----Неправильных ответов:"
+                f" {status.wrong_answers}"
+                f"/{status.difficulty.wrong_answers_to_lose}")
+        return text_lst
+
+    async def _build_messages_block(
+            self,
+            text: List[str],
+            head: Optional[str] = None,
+            foot: bool = True
+    ) -> str:
+        if not head:
+            head = "======"
+        lines = [f"================={head}================="]
+        lines.extend(text)
+        if foot:
+            lines.append("======================================")
+
+        message = "%0A %0A".join(lines)
+        return message
+
     async def _next_question(self, session: Session):
-        current_responder = await self.app.store.game.get_current_responder(session.id)
+        current_responder = await self.app.store.game.get_current_responder(
+            session.id)
         session.answering_player_vk_id = current_responder
         session.move_number += 1
         await self.app.store.game.update_session(session)
-        messages = []
-        messages.append("======================================")
-        messages.append("Продолжаем игру!")
+        text = []
+        text.append("Продолжаем игру!")
         answering_player = await self.app.store.game.get_player_by_vk_id(
             current_responder)
-        messages.append(f"Дальше отвечает игрок @id{current_responder}"
-                        f" {answering_player.first_name}"
-                        f" {answering_player.last_name}")
-        message = "%0A %0A".join(messages)
+        text.append(f"Дальше отвечает игрок @id{current_responder}"
+                    f" {answering_player.first_name}"
+                    f" {answering_player.last_name}")
+        message = await self._build_messages_block(text, foot=False)
         await self.app.store.vk_api.send_message(
             peer_id=session.chat_id,
             message=message
@@ -295,7 +378,8 @@ class BotManager:
         if action is not None:
             type_ = action.get("type")
             member = action.get("member_id")
-            if type_ == invite_type and member == -self.app.config.bot.group_id:
+            if type_ == invite_type and member == -self.app.config.bot \
+                    .group_id:
                 peer_id = message.peer_id
                 await self.send_start_message(peer_id)
         session = await self._get_current_session(message.peer_id)
@@ -410,29 +494,30 @@ class BotManager:
             .get_answered_questions_list(session.id)
         player = await self.app.store.game.get_player_by_vk_id(
             session.answering_player_vk_id)
-        status = await self.app.store.game.get_player_status(player.id, session.id)
+        status = await self.app.store.game.get_player_status(
+            player.id, session.id)
         questions = await self.app.store.quizzes.list_questions(
             theme_id, status.difficulty_id, answered_questions)
         if not questions:
             await self._finish_the_game(session.chat_id, "Interrupted")
-            messages = []
-            messages.append("=================FINISH=================")
-            messages.append(f"Игра была завершена, потому что для игрока "
-                            f"@id{session.answering_player_vk_id}"
-                            f" {player.first_name} {player.last_name} "
-                            f"закончились подходящие вопросы!")
-            messages.append("======================================")
-            message = "%0A %0A".join(messages)
+            text = []
+            text.append(f"Игра была завершена, потому что для игрока "
+                        f"@id{session.answering_player_vk_id}"
+                        f" {player.first_name} {player.last_name} "
+                        f"закончились подходящие вопросы!")
+            message = await self._build_messages_block(text, "FINISH")
             await self.app.store.vk_api.send_message(
                 peer_id=session.chat_id,
                 message=message
             )
-            await self.app.store.bots_manager.send_start_message(session.chat_id)
+            await self.app.store.bots_manager.send_start_message(
+                session.chat_id)
             return False
 
         question = random.choice(questions)
         await self.app.store.game.add_answered_question(
             session.id, question.id)
+        random.shuffle(question.answers)
         buttons = []
         for answer in question.answers:
             button = await self.app.store.vk_api.make_button(
@@ -474,24 +559,23 @@ class BotManager:
             await self.activate_session_after_timeout(peer_id, session.id)
 
     async def _send_game_start_message(self, peer_id: int):
-        messages = []
-        messages.append('=================START=================')
-        messages.append('Игра начинается'
-                        '! Чтобы присоединиться - нажми на кнопку!')
-        messages.append("Набор игроков продлится 30 секунд!")
-        messages.append("Игрок, стартовавший игру, может начать её досрочно."
-                        " Для этого напишите в чат /begin")
-        messages.append(
+        text = []
+        text.append('Игра начинается'
+                    '! Чтобы присоединиться - нажми на кнопку!')
+        text.append("Набор игроков продлится 30 секунд!")
+        text.append("Игрок, стартовавший игру, может начать её досрочно."
+                    " Для этого напишите в чат /begin")
+        text.append(
             "Игрок, стартовавший игру, может выбрать "
             "длительность игры и время на ответ")
-        messages.append("Для этого напишите в чат "
-                        "/duration {Время} и /answer_time {Время}")
-        messages.append("Чтобы получить информацию о текущем состоянии игры,"
-                        " нажмите на кнопку \"Показать информацию\".")
-        messages.append(
+        text.append("Для этого напишите в чат "
+                    "/duration {Время} и /answer_time {Время}")
+        text.append("Чтобы получить информацию о текущем состоянии игры,"
+                    " нажмите на кнопку \"Показать информацию\".")
+        text.append(
             "Вы можете завершить игру в любой момент,"
             " нажав на кнопку \"Завершить игру\".")
-        message = "%0A %0A".join(messages)
+        message = await self._build_messages_block(text, "START=", False)
         session = await self._get_current_session(peer_id)
         join_button = await self.app.store.vk_api.make_button(
             {"type": "callback",
@@ -556,16 +640,15 @@ class BotManager:
             session = await self.app.store.game.get_session_by_id(session_id)
             if session.status == SessionStatusKind.ACTIVE:
                 await self._finish_the_game(session.chat_id, "Finished")
-                messages = []
-                messages.append("=================FINISH=================")
-                messages.append(f"Игра завершена по истечению времени!")
-                messages.append("======================================")
-                message = "%0A %0A".join(messages)
+                text = []
+                text.append(f"Игра завершена по истечению времени!")
+                message = await self._build_messages_block(text, "FINISH")
                 await self.app.store.vk_api.send_message(
                     peer_id=session.chat_id,
                     message=message
                 )
-                await self.app.store.bots_manager.send_start_message(session.chat_id)
+                await self.app.store.bots_manager.send_start_message(
+                    session.chat_id)
 
         asyncio.create_task(coro=check_game(task))
 
@@ -584,28 +667,29 @@ class BotManager:
                     player.id, session.id)
                 difficulty = await self.app.store.game.get_difficulty_by_id(
                     status.difficulty_id)
-                keyboard = await self.app.store.vk_api.build_keyboard([], {"inline": True})
+                keyboard = await self.app.store.vk_api.build_keyboard(
+                    [], {"inline": True})
                 await self.app.store.vk_api.update_message(
                     peer_id=session.chat_id,
                     conversation_message_id=message_id,
                     message=f"Вопрос: {question_title}",
                     keyboard=json.dumps(keyboard)
                 )
-                messages = []
-                messages.append("Время на ответ кончилось!")
-                messages.append("Игроку засчитан неправильный ответ!")
+                text = []
+                text.append("Время на ответ кончилось!")
+                text.append("Игроку засчитан неправильный ответ!")
                 status.wrong_answers += 1
                 if status.wrong_answers == difficulty.wrong_answers_to_lose:
                     status.is_lost = True
-                    messages.append(f"К сожалению, игрок "
-                                    f"@id{player.vk_id} "
-                                    f"{player.first_name}"
-                                    f" {player.last_name}"
-                                    f" выбывает!")
+                    text.append(f"К сожалению, игрок "
+                                f"@id{player.vk_id} "
+                                f"{player.first_name}"
+                                f" {player.last_name}"
+                                f" выбывает!")
                     await self.app.store.game.remove_player_from_queue(
                         session.id)
                 await self.app.store.game.update_player_status(status)
-                message = "%0A %0A".join(messages)
+                message = "%0A %0A".join(text)
                 await self.app.store.vk_api.send_message(
                     peer_id=session.chat_id,
                     message=message
@@ -623,14 +707,11 @@ class BotManager:
                     winner.wins_count += 1
                     await self.app.store.game.update_player_status(status)
                     await self.app.store.game.update_player(winner)
-                    messages = []
-
-                    messages.append("=================FINISH=================")
-                    messages.append("Остался только 1 игрок!")
-                    messages.append(f"Игра завершена победой игрока "
-                                    f"@id{winner.vk_id}!")
-                    messages.append("======================================")
-                    message = "%0A %0A".join(messages)
+                    text = []
+                    text.append("Остался только 1 игрок!")
+                    text.append(f"Игра завершена победой игрока "
+                                f"@id{winner.vk_id}!")
+                    message = await self._build_messages_block(text, "FINISH")
                     await self.app.store.vk_api.send_message(
                         peer_id=session.chat_id,
                         message=message
@@ -703,19 +784,20 @@ class BotManager:
         return await asyncio.sleep(delay=delay,
                                    result=result)
 
-    async def change_game_status_to_active(self, peer_id: int, session_id: int):
+    async def change_game_status_to_active(
+            self, peer_id: int, session_id: int):
         session = await self.app.store.game.get_session_by_id(session_id)
         if session.status == SessionStatusKind.PREPARED:
             session.status = "Active"
-            keyboard = await self.app.store.vk_api.build_keyboard([], {"inline": True})
-            messages = []
-            messages.append("=================START=================")
-            messages.append("Игра уже началась!")
-            messages.append("Чтобы получить информацию о текущем состоянии игры,"
-                            " нажмите на кнопку \"Показать информацию\".")
-            messages.append("Вы можете завершить игру в любой момент,"
-                            " нажав на кнопку \"Завершить игру\".")
-            message = "%0A %0A".join(messages)
+            keyboard = await self.app.store.vk_api.build_keyboard(
+                [], {"inline": True})
+            text = []
+            text.append("Игра уже началась!")
+            text.append("Чтобы получить информацию о текущем состоянии игры,"
+                        " нажмите на кнопку \"Показать информацию\".")
+            text.append("Вы можете завершить игру в любой момент,"
+                        " нажав на кнопку \"Завершить игру\".")
+            message = await self._build_messages_block(text, "START=", False)
             await self.app.store.vk_api.update_message(
                 peer_id=peer_id,
                 conversation_message_id=session.start_message_id,
@@ -725,19 +807,18 @@ class BotManager:
             is_began = await self._begin_the_game(session)
             if not is_began:
                 return
-            await self.finish_session_after_timeout(session.chat_id, session.id)
+            await self.finish_session_after_timeout(
+                session.chat_id, session.id)
 
     async def _begin_the_game(self, session: Session) -> bool:
-        players_statuses = await self.app.store.game.get_players_statuses_by_session_id(
-            session.id)
+        players_statuses = await self.app.store.game \
+            .get_players_statuses_by_session_id(session.id)
         if not players_statuses:
             await self._finish_the_game(session.chat_id, "Interrupted")
-            messages = []
-            messages.append("=================FINISH=================")
-            messages.append(f"Игра была завершена,"
-                            f" потому что ни один игрок не присоединился!")
-            messages.append("======================================")
-            message = "%0A %0A".join(messages)
+            text = []
+            text.append(f"Игра была завершена,"
+                        f" потому что ни один игрок не присоединился!")
+            message = await self._build_messages_block(text, "FINISH")
             await self.app.store.vk_api.send_message(
                 peer_id=session.chat_id,
                 message=message
@@ -753,20 +834,18 @@ class BotManager:
         session.answering_player_vk_id = answering_vk_id
         session.move_number += 1
         await self.app.store.game.update_session(session)
-        messages = []
-        messages.append("==================GAME==================")
-        messages.append("Игра началась!")
+        text = []
+        text.append("Игра началась!")
         answering_player = await self.app.store.game.get_player_by_vk_id(
             answering_vk_id)
-        messages.append(f"Первым отвечает игрок @id{answering_vk_id}"
-                        f" {answering_player.first_name}"
-                        f" {answering_player.last_name}")
-        message = "%0A %0A".join(messages)
+        text.append(f"Первым отвечает игрок @id{answering_vk_id}"
+                    f" {answering_player.first_name}"
+                    f" {answering_player.last_name}")
+        message = await self._build_messages_block(text, "=GAME=", False)
         await self.app.store.vk_api.send_message(
             peer_id=session.chat_id,
             message=message
         )
-        await asyncio.sleep(0.2)
         await self._choose_a_question_theme(session)
         return True
 
@@ -806,11 +885,14 @@ class BotManager:
         await self.app.store.game.update_session(session)
         await self.app.store.game.remove_answer_queue(session.id)
         await self.app.store.game.remove_answered_questions_list(session.id)
-        keyboard = await self.app.store.vk_api.build_keyboard([], {"inline": True})
+        keyboard = await self.app.store.vk_api.build_keyboard(
+            [], {"inline": True})
+        message = await self._build_messages_block(
+            ["Игра уже завершена!"], "START=", False)
         await self.app.store.vk_api.update_message(
             peer_id=peer_id,
             conversation_message_id=session.start_message_id,
-            message="Игра уже завершена!",
+            message=message,
             keyboard=json.dumps(keyboard)
         )
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from sqlalchemy import Column, Integer, DateTime, func, ForeignKey, String, Boolean
 from sqlalchemy.orm import relationship
@@ -50,6 +50,7 @@ class Player:
 @dataclass
 class PlayerStatusNested(PlayerStatus):
     player: Player
+    difficulty: Any
 
 
 @dataclass
@@ -191,7 +192,8 @@ class PlayersStatusModel(db):
             wrong_answers=self.wrong_answers,
             is_won=self.is_won,
             is_lost=self.is_lost,
-            player=self.player.to_dc()
+            player=self.player.to_dc(),
+            difficulty=self.difficulty.to_dc()
         )
 
 

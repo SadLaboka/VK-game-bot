@@ -76,7 +76,9 @@ class GameAccessor(BaseAccessor):
             result = await conn.scalars(
                 select(PlayersStatusModel).
                 where(PlayersStatusModel.session_id == session_id).
-                options(joinedload(PlayersStatusModel.player)))
+                options(joinedload(PlayersStatusModel.player)).
+                options(joinedload(PlayersStatusModel.difficulty))
+            )
 
         return [
             player.to_nested_dc() for player in result.unique()

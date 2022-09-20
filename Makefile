@@ -18,3 +18,6 @@ docker-stop:
 
 coverage:
 	python -m pytest --cov=app --cov-report=xml
+
+logs:
+	docker-compose logs app

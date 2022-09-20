@@ -2,33 +2,32 @@ version: '3.8'
 
 services:
   app:
-    container_name: aiohttp_project
+    container_name: app
     build:
       context: .
       dockerfile: Dockerfile
     networks:
-      - docker_network
+      - my_network
     ports:
       - "8000:8000"
     depends_on:
-      postgres_test:
-        condition: service_healthy
       redis_db:
         condition: service_healthy
-
-  postgres_test:
+      postgres_db:
+        condition: service_healthy
+  postgres_db:
     container_name: postgres_db
     image: postgres:latest
     environment:
       - POSTGRES_DB=kts
       - POSTGRES_USER=kts
       - POSTGRES_PASSWORD=kts
+    networks:
+      - my_network
     expose:
       - 5432
     ports:
       - "5432:5432"
-    networks:
-      - docker_network
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U kts" ]
       interval: 5s
@@ -38,12 +37,12 @@ services:
   redis_db:
     container_name: redis_db
     image: redis:6.2.6-alpine
+    networks:
+      - my_network
     expose:
       - 6379
     ports:
       - "9000:6379"
-    networks:
-      - docker_network
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -51,4 +50,4 @@ services:
       retries: 100
 
 networks:
-  docker_network:
+  my_network:

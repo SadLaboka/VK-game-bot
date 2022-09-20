@@ -1,6 +1,7 @@
 import asyncio
 from asyncio import Task, Future
-from typing import Optional, List, TYPE_CHECKING
+from collections import defaultdict
+from typing import Optional, List, TYPE_CHECKING, DefaultDict
 
 from app.store import Store
 from app.store.vk_api.dataclasses import Update
@@ -12,7 +13,7 @@ class Poller:
         self.is_running = False
         self.poll_task: Optional[Task] = None
         self.queue: Optional[asyncio.Queue] = None
-        self.game_timeout_tasks: dict = {}
+        self.game_timeout_tasks = dict()
         self.tasks: list = []
         self.workers = 8
 

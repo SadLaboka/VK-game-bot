@@ -386,6 +386,8 @@ class BotManager:
                 return
             if session.started_by != message.user_id:
                 return
+            if time < 120 or time > 3600:
+                return
             session.session_duration = time
             await self.app.store.game.update_session(session)
             await self.app.store.vk_api.send_message(
@@ -401,6 +403,8 @@ class BotManager:
             except ValueError:
                 return
             if session.started_by != message.user_id:
+                return
+            if time < 10 or time > 60:
                 return
             session.response_time = time
             await self.app.store.game.update_session(session)
@@ -746,12 +750,18 @@ class BotManager:
             self, peer_id: int, session_id: int):
         task = asyncio.create_task(self.delay_coroutine(30, peer_id, session_id))
         task.add_done_callback(self.create_a_prep_timer)
+        session_timeout_tasks = self.app.store.vk_api.poller \
+            .game_timeout_tasks.setdefault(session_id, [])
+        session_timeout_tasks.append(task)
 
     async def finish_session_after_timeout(self, peer_id: int, session_id: int):
         session = await self.app.store.game.get_session_by_id(session_id)
         task = asyncio.create_task(self.delay_coroutine(
             session.session_duration, peer_id, session.id))
         task.add_done_callback(self.create_a_session_timer)
+        session_timeout_tasks = self.app.store.vk_api.poller \
+            .game_timeout_tasks.setdefault(session_id, [])
+        session_timeout_tasks.append(task)
 
     async def next_answer_after_timeout(
             self,
@@ -771,6 +781,9 @@ class BotManager:
             question_title
         ))
         task.add_done_callback(self.create_a_answer_timer)
+        session_timeout_tasks = self.app.store.vk_api.poller \
+            .game_timeout_tasks.setdefault(session_id, [])
+        session_timeout_tasks.append(task)
 
     async def delay_coroutine(
             self,
@@ -903,6 +916,12 @@ class BotManager:
             message=message,
             keyboard=json.dumps(keyboard)
         )
+        session_timeout_tasks = self.app.store.vk_api.poller\
+            .game_timeout_tasks.setdefault(session.id, [])
+        if session_timeout_tasks:
+            for task in session_timeout_tasks:
+                task.cancel()
+            self.app.store.vk_api.poller.game_timeout_tasks.pop(session.id)
 
     async def _get_current_session(
             self, peer_id: int) -> Optional[Session]:

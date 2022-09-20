@@ -11,15 +11,15 @@ class Store:
     def __init__(self, app: "Application"):
         from app.store.quiz.accessor import QuizAccessor
         from app.store.admin.accessor import AdminAccessor
-        from app.store.smart_peoples.accessor import GameAccessor
         from app.store.bot.manager import BotManager
+        from app.store.smart_peoples.accessor import GameAccessor
         from app.store.vk_api.accessor import VkApiAccessor
 
         self.app = app
         self.quizzes = QuizAccessor(app)
         self.admins = AdminAccessor(app)
-        self.game = GameAccessor(app)
         self.vk_api = VkApiAccessor(app)
+        self.game = GameAccessor(app)
         self.bots_manager = BotManager(app)
 
 

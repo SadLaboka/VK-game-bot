@@ -1,13 +1,29 @@
 version: '3.8'
 
 services:
-  postgres_test:
+  app:
+    container_name: app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - my_network
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis_db:
+        condition: service_healthy
+      postgres_db:
+        condition: service_healthy
+  postgres_db:
     container_name: postgres_db
     image: postgres:latest
     environment:
       - POSTGRES_DB=kts
       - POSTGRES_USER=kts
       - POSTGRES_PASSWORD=kts
+    networks:
+      - my_network
     expose:
       - 5432
     ports:
@@ -17,3 +33,21 @@ services:
       interval: 5s
       timeout: 20s
       retries: 100
+
+  redis_db:
+    container_name: redis_db
+    image: redis:6.2.6-alpine
+    networks:
+      - my_network
+    expose:
+      - 6379
+    ports:
+      - "9000:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 20s
+      retries: 100
+
+networks:
+  my_network:

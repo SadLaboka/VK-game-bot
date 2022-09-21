@@ -10,6 +10,7 @@ test:
 
 docker:
 	docker-compose up --build -d
+	docker-compose exec app python -m alembic upgrade head
 
 docker-stop:
 	docker-compose stop
@@ -17,3 +18,6 @@ docker-stop:
 
 coverage:
 	python -m pytest --cov=app --cov-report=xml
+
+logs:
+	docker-compose logs app

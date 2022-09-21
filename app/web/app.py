@@ -10,7 +10,7 @@ from aiohttp_session import setup as setup_aiohttp_session
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 
 from app.admin.models import Admin
-from app.store import setup_store, Store
+from app.store import setup_store, Store, RedisDatabase
 from app.store.database.database import Database
 from app.web.config import Config, setup_config
 from app.web.logger import setup_logging
@@ -22,6 +22,7 @@ class Application(AiohttpApplication):
     config: Optional[Config] = None
     store: Optional[Store] = None
     database: Optional[Database] = None
+    redis: Optional[RedisDatabase] = None
 
 
 class Request(AiohttpRequest):

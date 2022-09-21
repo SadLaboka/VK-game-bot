@@ -1,9 +1,10 @@
 import asyncio
 from asyncio import Task, Future
-from typing import Optional, List, TYPE_CHECKING
+from collections import defaultdict
+from typing import Optional, List, TYPE_CHECKING, DefaultDict
 
 from app.store import Store
-from app.store.vk_api.dataclasses import Update, TimeoutTask
+from app.store.vk_api.dataclasses import Update
 
 
 class Poller:
@@ -12,7 +13,7 @@ class Poller:
         self.is_running = False
         self.poll_task: Optional[Task] = None
         self.queue: Optional[asyncio.Queue] = None
-        self.game_timeout_tasks: List[TimeoutTask] = []
+        self.game_timeout_tasks = dict()
         self.tasks: list = []
         self.workers = 8
 
@@ -55,11 +56,6 @@ class Poller:
             updates = await self.store.vk_api.poll()
             if updates:
                 await self.process_update(updates)
-
-    async def start_timeout_tasks(self):
-        while True:
-            for task in self.game_timeout_tasks:
-                pass
 
     async def worker(self):
         while True:

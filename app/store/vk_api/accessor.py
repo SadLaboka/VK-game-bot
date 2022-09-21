@@ -1,4 +1,3 @@
-import asyncio
 import random
 
 from typing import Optional, List, TYPE_CHECKING
@@ -140,10 +139,6 @@ class VkApiAccessor(BaseAccessor):
             method='messages.send',
             params=params
         )
-
-        async with self.session.get(url) as response:
-            data = await response.json()
-            self.logger.info(data)
 
         async with self.session.get(url) as response:
             data = await response.json()

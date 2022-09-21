@@ -64,6 +64,7 @@ class BotManager:
                 message=message
             )
             await self._finish_the_game(callback.peer_id, "Interrupted")
+            await asyncio.sleep(0.3)
             await self.app.store.bots_manager.send_start_message(
                 callback.peer_id)
         elif command == CommandKind.SHOW_INFO:
@@ -185,10 +186,12 @@ class BotManager:
                             session.id)
                 await self.app.store.game.update_player_status(status)
                 message = "%0A %0A".join(text)
+                await asyncio.sleep(0.5)
                 await self.app.store.vk_api.send_message(
                     peer_id=callback.peer_id,
                     message=message
                 )
+                await asyncio.sleep(0.5)
                 responders_queue_length = await self.app.store.game \
                     .get_responder_queue_length(session.id)
                 if status.is_won:
@@ -223,6 +226,7 @@ class BotManager:
                         peer_id=callback.peer_id,
                         message=message
                     )
+                    await asyncio.sleep(0.3)
                     await self.send_start_message(callback.peer_id)
                     player.wins_count += 1
                     await self.app.store.game.update_player(player)
@@ -270,6 +274,7 @@ class BotManager:
                     )
                     await self._finish_the_game(
                         callback.peer_id, "Finished", winner.id)
+                    await asyncio.sleep(0.3)
                     await self.send_start_message(callback.peer_id)
                 else:
                     await self._next_question(session)
@@ -295,6 +300,16 @@ class BotManager:
                     event_data=json.dumps({
                         "type": "show_snackbar",
                         "text": "Сейчас не ваша очередь!"
+                    })
+                )
+            elif session.question_asked:
+                await self.app.store.vk_api.send_message_event_answer(
+                    event_id=callback.event_id,
+                    user_id=callback.user_id,
+                    peer_id=callback.peer_id,
+                    event_data=json.dumps({
+                        "type": "show_snackbar",
+                        "text": "Тема уже выбрана!"
                     })
                 )
             else:
@@ -348,6 +363,7 @@ class BotManager:
             session.id)
         session.answering_player_vk_id = current_responder
         session.move_number += 1
+        session.question_asked = False
         await self.app.store.game.update_session(session)
         text = []
         text.append("Продолжаем игру!")
@@ -545,11 +561,14 @@ class BotManager:
             buttons.append([button])
         keyboard = await self.app.store.vk_api.build_keyboard(
             buttons, {"inline": True})
+        await asyncio.sleep(0.3)
         response = await self.app.store.vk_api.send_message(
             peer_ids=session.chat_id,
             message=f"Вопрос: {question.title}",
             keyboard=json.dumps(keyboard)
         )
+        session.question_asked = True
+        await self.app.store.game.update_session(session)
         message_id = response["response"][0]["conversation_message_id"]
         await self.next_answer_after_timeout(
             session.chat_id,
@@ -571,7 +590,10 @@ class BotManager:
             await self.activate_session_after_timeout(peer_id, session.id)
 
     async def _send_game_start_message(self, peer_id: int):
+        session = await self._get_current_session(peer_id)
         text = []
+        text.append(f'Новая игра была инициирована игроком'
+                    f' @id{session.started_by}')
         text.append('Игра начинается'
                     '! Чтобы присоединиться - нажми на кнопку!')
         text.append("Набор игроков продлится 30 секунд!")
@@ -588,7 +610,6 @@ class BotManager:
             "Вы можете завершить игру в любой момент,"
             " нажав на кнопку \"Завершить игру\".")
         message = await self._build_messages_block(text, "START=", False)
-        session = await self._get_current_session(peer_id)
         join_button = await self.app.store.vk_api.make_button(
             {"type": "callback",
              "payload": {"command": "join",
@@ -626,6 +647,7 @@ class BotManager:
         keyboard = await self.app.store.vk_api.build_keyboard(
             buttons=buttons
         )
+        await asyncio.sleep(0.3)
         await self.app.store.vk_api.send_message(
             peer_id=peer_id,
             message="======================================",
@@ -847,6 +869,19 @@ class BotManager:
             await self.app.store.bots_manager.send_start_message(
                 session.chat_id)
             return False
+        elif len(players_statuses) == 1:
+            await self._finish_the_game(session.chat_id, "Interrupted")
+            text = []
+            text.append(f"Игра была завершена,"
+                        f" потому что присоединился только 1 человек!")
+            message = await self._build_messages_block(text, "FINISH")
+            await self.app.store.vk_api.send_message(
+                peer_id=session.chat_id,
+                message=message
+            )
+            await self.app.store.bots_manager.send_start_message(
+                session.chat_id)
+            return False
         await self.app.store.game.create_answer_queue(
             session.id, players_statuses)
         await self.app.store.game.create_answered_questions_list(session.id)
@@ -863,6 +898,7 @@ class BotManager:
                     f" {answering_player.first_name}"
                     f" {answering_player.last_name}")
         message = await self._build_messages_block(text, "=GAME=", False)
+        await asyncio.sleep(0.5)
         await self.app.store.vk_api.send_message(
             peer_id=session.chat_id,
             message=message

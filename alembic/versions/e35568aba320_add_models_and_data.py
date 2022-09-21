@@ -78,6 +78,7 @@ def upgrade() -> None:
     sa.Column('session_duration', sa.Integer(), nullable=False),
     sa.Column('started_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.Column('start_message_id', sa.Integer(), nullable=True),
+    sa.Column('question_asked', sa.Boolean(), nullable=False),
     sa.Column('answering_player_vk_id', sa.Integer(), nullable=True),
     sa.Column('finished_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['winner_id'], ['players.id'], ondelete='SET NULL'),
@@ -136,13 +137,13 @@ def upgrade() -> None:
                        {
                            "id": 2,
                            "title": "Желтый",
-                           "right_answers_to_win": 2,
+                           "right_answers_to_win": 3,
                            "wrong_answers_to_lose": 2
                        },
                        {
                            "id": 3,
                            "title": "Зеленый",
-                           "right_answers_to_win": 2,
+                           "right_answers_to_win": 4,
                            "wrong_answers_to_lose": 3
                        }
                    ]
@@ -358,6 +359,60 @@ def upgrade() -> None:
                            "id": 27,
                            "title": "Герой, которого сыграл Брюс Уиллис в фильме \"Крепкий орешек\"?",
                            "difficulty_id": 1,
+                           "theme_id": 3
+                       },
+                       {
+                           "id": 28,
+                           "title": "В каком веке жил М.Ю. Лермонтов?",
+                           "difficulty_id": 3,
+                           "theme_id": 2
+                       },
+                       {
+                           "id": 29,
+                           "title": "Автор произведения /”Мертвые души/”?",
+                           "difficulty_id": 3,
+                           "theme_id": 2
+                       },
+                       {
+                           "id": 30,
+                           "title": "Кто из этих авторов является Нобелевским лауреатом?",
+                           "difficulty_id": 2,
+                           "theme_id": 2
+                       },
+                       {
+                           "id": 31,
+                           "title": "Самая большая пустыня?",
+                           "difficulty_id": 3,
+                           "theme_id": 1
+                       },
+                       {
+                           "id": 32,
+                           "title": "Крупнейшая акула?",
+                           "difficulty_id": 3,
+                           "theme_id": 1
+                       },
+                       {
+                           "id": 33,
+                           "title": "Самые высокие деревья?",
+                           "difficulty_id": 2,
+                           "theme_id": 1
+                       },
+                       {
+                           "id": 34,
+                           "title": "Актер, сыгравший главную роль в фильме /“Титаник/”?",
+                           "difficulty_id": 3,
+                           "theme_id": 3
+                       },
+                       {
+                           "id": 35,
+                           "title": "Главный хоббит трилогии /“Властелин колец/”?",
+                           "difficulty_id": 3,
+                           "theme_id": 3
+                       },
+                       {
+                           "id": 36,
+                           "title": "Один из главных героев фильмов /”Назад в будущее/”?",
+                           "difficulty_id": 2,
                            "theme_id": 3
                        },
                    ]
@@ -850,6 +905,168 @@ def upgrade() -> None:
                            "title": "Кайл Риз",
                            "is_correct": False,
                            "question_id": 27
+                       },
+                       {
+                           "id": 82,
+                           "title": "19",
+                           "is_correct": True,
+                           "question_id": 28
+                       },
+                       {
+                           "id": 83,
+                           "title": "18",
+                           "is_correct": False,
+                           "question_id": 28
+                       },
+                       {
+                           "id": 84,
+                           "title": "20",
+                           "is_correct": False,
+                           "question_id": 28
+                       },
+                       {
+                           "id": 85,
+                           "title": "Н.В.Гоголь",
+                           "is_correct": True,
+                           "question_id": 29
+                       },
+                       {
+                           "id": 86,
+                           "title": "М.Ю.Лермонтов",
+                           "is_correct": False,
+                           "question_id": 29
+                       },
+                       {
+                           "id": 87,
+                           "title": "М.А.Булгаков",
+                           "is_correct": False,
+                           "question_id": 29
+                       },
+                       {
+                           "id": 88,
+                           "title": "И.А.Бунин",
+                           "is_correct": True,
+                           "question_id": 30
+                       },
+                       {
+                           "id": 89,
+                           "title": "М.А.Булгаков",
+                           "is_correct": False,
+                           "question_id": 30
+                       },
+                       {
+                           "id": 90,
+                           "title": "А.А.Блок",
+                           "is_correct": False,
+                           "question_id": 30
+                       },
+                       {
+                           "id": 91,
+                           "title": "Сахара",
+                           "is_correct": True,
+                           "question_id": 31
+                       },
+                       {
+                           "id": 92,
+                           "title": "Гоби",
+                           "is_correct": False,
+                           "question_id": 31
+                       },
+                       {
+                           "id": 93,
+                           "title": "Атакама",
+                           "is_correct": False,
+                           "question_id": 31
+                       },
+                       {
+                           "id": 94,
+                           "title": "Китовая",
+                           "is_correct": True,
+                           "question_id": 32
+                       },
+                       {
+                           "id": 95,
+                           "title": "Белая",
+                           "is_correct": False,
+                           "question_id": 32
+                       },
+                       {
+                           "id": 96,
+                           "title": "Молот",
+                           "is_correct": False,
+                           "question_id": 32
+                       },
+                       {
+                           "id": 97,
+                           "title": "Секвойи",
+                           "is_correct": True,
+                           "question_id": 33
+                       },
+                       {
+                           "id": 98,
+                           "title": "Баобабы",
+                           "is_correct": False,
+                           "question_id": 33
+                       },
+                       {
+                           "id": 99,
+                           "title": "Дубы",
+                           "is_correct": False,
+                           "question_id": 33
+                       },
+                       {
+                           "id": 100,
+                           "title": "Леонардо Ди Каприо",
+                           "is_correct": True,
+                           "question_id": 34
+                       },
+                       {
+                           "id": 101,
+                           "title": "Джонни Депп",
+                           "is_correct": False,
+                           "question_id": 34
+                       },
+                       {
+                           "id": 102,
+                           "title": "Уилл Смит",
+                           "is_correct": False,
+                           "question_id": 34
+                       },
+                       {
+                           "id": 103,
+                           "title": "Фродо",
+                           "is_correct": True,
+                           "question_id": 35
+                       },
+                       {
+                           "id": 104,
+                           "title": "Бильбо",
+                           "is_correct": False,
+                           "question_id": 35
+                       },
+                       {
+                           "id": 105,
+                           "title": "Сэм",
+                           "is_correct": False,
+                           "question_id": 35
+                       },
+                       {
+                           "id": 106,
+                           "title": "Марти Макфлай",
+                           "is_correct": True,
+                           "question_id": 36
+                       },
+                       {
+                           "id": 107,
+                           "title": "Бифф Таннен",
+                           "is_correct": False,
+                           "question_id": 36
+                       },
+                       {
+                           "id": 108,
+                           "title": "Чарльз Ксавьер",
+                           "is_correct": False,
+                           "question_id": 36
                        },
                    ]
                    )

@@ -18,6 +18,7 @@ class Session:
     session_duration: int
     started_at: datetime
     move_number: int
+    question_asked: bool
     start_message_id: Optional[int] = None
     finished_at: Optional[datetime] = None
     winner_id: Optional[int] = None
@@ -78,6 +79,7 @@ class SessionModel(db):
     started_at = Column(DateTime(timezone=False), server_default=func.now())
     start_message_id = Column(Integer, unique=True)
     answering_player_vk_id = Column(Integer, nullable=True)
+    question_asked = Column(Boolean, nullable=False, default=False)
     finished_at = Column(DateTime(timezone=False))
     winner = relationship(
         "PlayerModel",
@@ -99,6 +101,7 @@ class SessionModel(db):
             session_duration=self.session_duration,
             start_message_id=self.start_message_id,
             started_at=self.started_at,
+            question_asked=self.question_asked,
             answering_player_vk_id=self.answering_player_vk_id,
             finished_at=self.finished_at,
             winner_id=self.winner_id

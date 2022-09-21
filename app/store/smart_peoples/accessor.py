@@ -82,6 +82,7 @@ class GameAccessor(BaseAccessor):
                 finished_at=session.finished_at,
                 winner_id=session.winner_id,
                 move_number=session.move_number,
+                question_asked=session.question_asked,
                 answering_player_vk_id=session.answering_player_vk_id
             ))
 

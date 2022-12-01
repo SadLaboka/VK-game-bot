@@ -1,3 +1,4 @@
+import json
 import random
 
 from typing import Optional, List, TYPE_CHECKING
@@ -58,7 +59,7 @@ class VkApiAccessor(BaseAccessor):
             self.server = data['response']['server']
             self.ts = data['response']['ts']
 
-    async def poll(self) -> List[Update]:
+    async def poll(self) -> None:
         url = self._build_query(self.server, '', {
             'act': 'a_check',
             'key': self.key,
@@ -71,37 +72,9 @@ class VkApiAccessor(BaseAccessor):
             self.app.logger.info(data)
             if self.ts <= data['ts']:
                 self.ts = data['ts']
-            updates = []
             for update in data['updates']:
-                update = await self._create_update(update)
-                if update:
-                    updates.append(update)
-        return updates
-
-    @staticmethod
-    async def _create_update(update: dict) -> Optional[Update]:
-        if update['type'] == 'message_new':
-            data = update['object']['message']
-            return Update(
-                type=update['type'],
-                object=UpdateMessage(
-                    text=data['text'],
-                    user_id=data['from_id'],
-                    peer_id=data['peer_id'],
-                    action=data.get('action'),
-                    message_id=data.get("conversation_message_id")
-                ))
-        elif update['type'] == 'message_event':
-            data = update['object']
-            return Update(
-                type=update['type'],
-                object=UpdateCallback(
-                    user_id=data['user_id'],
-                    peer_id=data['peer_id'],
-                    payload=data['payload'],
-                    message_id=data.get("conversation_message_id"),
-                    event_id=data.get("event_id")
-                ))
+                await self.app.rabbit.publish(json.dumps(update))
+            return data['updates']
 
     async def get_user(self, vk_id: int) -> User:
         url = self._build_query(

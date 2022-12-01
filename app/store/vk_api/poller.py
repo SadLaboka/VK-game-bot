@@ -1,10 +1,10 @@
 import asyncio
+import json
 from asyncio import Task, Future
-from collections import defaultdict
-from typing import Optional, List, TYPE_CHECKING, DefaultDict
+from typing import Optional
 
 from app.store import Store
-from app.store.vk_api.dataclasses import Update
+from app.store.vk_api.dataclasses import Update, UpdateMessage, UpdateCallback
 
 
 class Poller:
@@ -12,10 +12,9 @@ class Poller:
         self.store = store
         self.is_running = False
         self.poll_task: Optional[Task] = None
-        self.queue: Optional[asyncio.Queue] = None
         self.game_timeout_tasks = dict()
         self.tasks: list = []
-        self.workers = 8
+        self.workers = 16
 
     def _done_callback(self, future: Future):
         if future.exception():
@@ -23,23 +22,18 @@ class Poller:
                 'polling failed', exc_info=future.exception()
             )
 
-    async def process_update(self, updates: list[Update]):
-        for update in updates:
-            self.queue.put_nowait(update)
+    async def process_update(self):
         for i in range(self.workers):
             task = asyncio.create_task(self.worker())
             self.tasks.append(task)
 
-        await self.queue.join()
+        await asyncio.sleep(3)
 
         for task in self.tasks:
             task.cancel()
-
-        await asyncio.gather(*self.tasks, return_exceptions=True)
         self.tasks = []
 
     async def start(self):
-        self.queue = asyncio.Queue()
         task = asyncio.create_task(self.poll())
         task.add_done_callback(self._done_callback)
         self.is_running = True
@@ -55,10 +49,36 @@ class Poller:
         while self.is_running:
             updates = await self.store.vk_api.poll()
             if updates:
-                await self.process_update(updates)
+                await self.process_update()
 
     async def worker(self):
         while True:
-            update = await self.queue.get()
+            message = await self.store.vk_api.app.rabbit.consume()
+            update = await self._create_update(json.loads(message.body.decode()))
             await self.store.bots_manager.handle_updates(update)
-            self.queue.task_done()
+            await message.ack()
+
+    @staticmethod
+    async def _create_update(update: dict) -> Optional[Update]:
+        if update['type'] == 'message_new':
+            data = update['object']['message']
+            return Update(
+                type=update['type'],
+                object=UpdateMessage(
+                    text=data['text'],
+                    user_id=data['from_id'],
+                    peer_id=data['peer_id'],
+                    action=data.get('action'),
+                    message_id=data.get("conversation_message_id")
+                ))
+        elif update['type'] == 'message_event':
+            data = update['object']
+            return Update(
+                type=update['type'],
+                object=UpdateCallback(
+                    user_id=data['user_id'],
+                    peer_id=data['peer_id'],
+                    payload=data['payload'],
+                    message_id=data.get("conversation_message_id"),
+                    event_id=data.get("event_id")
+                ))

@@ -35,6 +35,13 @@ class DatabaseConfig:
 
 
 @dataclass
+class RabbitConfig:
+    host: str
+    user: str
+    password: str
+
+
+@dataclass
 class RedisConfig:
     host: str
     port: int
@@ -47,6 +54,7 @@ class Config:
     database: DatabaseConfig = None
     database_url: str = None
     redis: RedisConfig = None
+    rabbit: RabbitConfig = None
 
 
 def setup_config(app: "Application", config_path: str):
@@ -65,6 +73,11 @@ def setup_config(app: "Application", config_path: str):
             user=raw_config["database"]["user"],
             password=raw_config["database"]["password"],
             database=raw_config["database"]["database"]
+        ),
+        rabbit=RabbitConfig(
+            host=raw_config["rabbit"]["host"],
+            user=raw_config["rabbit"]["user"],
+            password=raw_config["rabbit"]["password"]
         ),
         redis=RedisConfig(
             host=raw_config["redis"]["host"],

@@ -2,7 +2,21 @@
 
 ## Позволяет запустить в групповой VK-беседе игру "Умники и умницы". Предоставляет Rest-API для админов.
 
-### Links
+## Usage:
+
+With Make:
+```
+make docker
+```
+
+Without Make:
+
+```
+docker-compose up --build -d
+docker-compose exec app python -m alembic upgrade head
+```
+
+### Links:
 
 This project was built using these tools:
 
